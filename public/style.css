@@ -143,7 +143,7 @@ h1 {
   display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow-wrap: anywhere; hyphens: auto;
   text-shadow: 0 0 2px var(--case), 0 0 3px var(--case), 0 0 4px var(--case);
 }
-.case .prix { font-weight: 500; opacity: .75; }
+.case .prix { position: relative; z-index: 6; font-weight: 700; opacity: .85; white-space: nowrap; text-shadow: 0 0 2px var(--case), 0 0 3px var(--case); }
 .case .icone { font-size: 2.1em; line-height: 1; }
 /* Les côtés gauche/droit : la bande de couleur est sur le côté intérieur */
 .case.gauche, .case.droite { flex-direction: row; padding: 1px 2px; justify-content: flex-start; gap: 2px; }
@@ -160,8 +160,7 @@ h1 {
 .case.coin .nom { font-size: 1.15em; -webkit-line-clamp: 5; }
 .case .maisons { font-size: 1.1em; line-height: 1; letter-spacing: -1px; }
 .case .proprio {
-  position: absolute; inset: 0; pointer-events: none; border: 3px solid var(--couleur-proprio); border-radius: 3px;
-  box-shadow: inset 0 0 8px var(--couleur-proprio);
+  position: absolute; inset: 0; pointer-events: none; border: 2px solid var(--couleur-proprio); border-radius: 3px;
 }
 .case.hypotheque::after {
   content: 'HYPOTHÉQUÉ'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 7;
@@ -332,6 +331,10 @@ h1 {
 .journal li { font-size: 13px; padding: 4px 6px; border-radius: 6px; background: rgba(0,0,0,.18); }
 .chat li { font-size: 14px; padding: 5px 8px; border-radius: 10px; background: rgba(0,0,0,.2); word-wrap: break-word; }
 .chat li b { color: var(--c); }
+.position { text-align: center; font-size: 1.15em; line-height: 1.3; background: rgba(0,0,0,.35); border-radius: 14px; padding: 6px 14px; text-shadow: 0 2px 4px rgba(0,0,0,.5); }
+.position:empty { display: none; }
+.position b { color: var(--jaune); }
+.position small { font-size: .85em; color: #fff; opacity: .9; }
 .evenement { font-size: .8em; text-align: center; color: #fff; background: rgba(0,0,0,.35); border-radius: 10px; padding: 3px 10px; max-width: 100%; }
 .evenement:empty { display: none; }
 
@@ -425,7 +428,7 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
   .siege .details { font-size: 11px; }
   .bulles { left: 50%; top: auto; bottom: 72px; transform: translateX(-50%); width: min(620px, calc(100vw - 16px)); }
   .hud { font-size: clamp(10px, 3vw, 16px); }
-  .case .prix { display: none; }
+  .case .prix { font-size: .95em; opacity: .9; }
   /* Sur téléphone, le plateau est plus haut que large : plus de place pour les noms */
   .plateau { gap: 1px; padding: 1px; aspect-ratio: auto; height: calc(var(--taille) * 1.45); }
   .hud .centre-titre { display: none; }

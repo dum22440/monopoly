@@ -72,7 +72,7 @@ const MAISONS_DISPO = 32;
 const HOTELS_DISPO = 12;
 const DUREE_ENCHERE = 12000; // ms sans nouvelle offre avant adjudication
 
-const PIONS = ['🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
+const PIONS = ['🏎️', '🏍️', '🐆', '🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
 const COULEURS = ['#ff3b6b', '#2ec5ff', '#ffd23f', '#3bff8f', '#b36bff', '#ff8a3b'];
 
 // ---------------------------------------------------------------------
@@ -89,7 +89,7 @@ function construirePlateau(cfg) {
     switch (type) {
       case 'prop':
         Object.assign(c, { nom: noms[groupe].shift(), groupe, couleur: GROUPES[groupe].couleur,
-          prix, loyers, prixMaison: GROUPES[groupe].maison });
+          prix, loyers: calculerLoyers(cfg, prix, loyers), prixMaison: GROUPES[groupe].maison });
         break;
       case 'gare': Object.assign(c, { nom: gares.shift(), prix: 200 }); break;
       case 'compagnie': Object.assign(c, { nom: comp.shift(), prix: 150 }); break;
@@ -104,6 +104,14 @@ function construirePlateau(cfg) {
     }
     return c;
   });
+}
+
+// Loyers : si personnalisation.js donne des coefficients, loyer = prix du terrain × coefficient
+// (terrain nu, 1, 2, 3, 4 maisons, hôtel). Sinon on garde les loyers officiels.
+function calculerLoyers(cfg, prix, officiels) {
+  const k = cfg.coefficientsLoyers;
+  if (!Array.isArray(k) || k.length !== 6) return officiels;
+  return k.map((x) => Math.max(1, Math.round(prix * x)));
 }
 
 // Vérifie le fichier de personnalisation et renvoie la liste des erreurs (en français)
@@ -233,13 +241,26 @@ class Partie {
   }
 
   nouveauTour(p) {
-    this.tour = { joueurId: p.id, etape: 'lancer', doubles: 0, des: null };
+    this.tour = { joueurId: p.id, etape: 'lancer', doubles: 0, des: null, aConstruit: false };
     this.derniereCarte = null;
   }
 
   // ------------------------------------------------------------- actions des joueurs
   // Point d'entrée unique : chaque action est vérifiée ici avant d'être appliquée.
   action(id, a) {
+    this.actionBrute(id, a);
+    this.enchainer();
+  }
+
+  // Le tour passe tout seul au joueur suivant dès qu'il n'y a plus rien à décider
+  // (pas d'achat en attente, pas d'enchère, pas de dette).
+  enchainer() {
+    if (this.phase !== 'jeu' || !this.tour || this.tour.etape !== 'fin') return;
+    if (this.enchere || this.joueurs.some((x) => x.dette)) return;
+    this.passerAuSuivant();
+  }
+
+  actionBrute(id, a) {
     const p = this.j(id);
     if (!p) throw new Error('Joueur inconnu.');
     this.derniereActivite = Date.now();
@@ -302,6 +323,7 @@ class Partie {
       p.toursPrison++;
       if (p.toursPrison < 3) {
         this.log(`${p.nom} reste en ${this.nomCase(PRISON)} (essai ${p.toursPrison}/3).`);
+        this.dernierCoup = { joueurId: p.id, case: PRISON, info: `pas de double, reste coincé (${p.toursPrison}/3)` };
         this.tour.etape = 'fin';
         return;
       }
@@ -319,6 +341,7 @@ class Partie {
       if (this.tour.doubles === 3) {
         this.log(`🚨 3 doubles de suite ! ${p.nom} va directement en ${this.nomCase(PRISON)}.`);
         this.envoyerPrison(p);
+        this.dernierCoup = { joueurId: p.id, case: PRISON, info: '3 doubles : direction ' + this.nomCase(PRISON) };
         return;
       }
     }
@@ -354,6 +377,8 @@ class Partie {
   // Que se passe-t-il quand on s'arrête sur une case ?
   arriverSur(p, mod = null) {
     const c = this.plateau[p.position];
+    this.dernierCoup = { joueurId: p.id, case: c.i, info: '' };
+    const info = (t) => { this.dernierCoup.info = t; };
     switch (c.type) {
       case 'prop': case 'gare': case 'compagnie': {
         const pr = this.proprietes[c.i];
@@ -364,15 +389,18 @@ class Partie {
           const loyer = this.calculLoyer(c, mod);
           const proprio = this.j(pr.proprio);
           this.log(`🏠 ${p.nom} tombe chez ${proprio.nom} (${c.nom}) et doit ${this.argent(loyer)} de loyer.`);
+          info(`paie ${this.argent(loyer)} à ${proprio.nom}`);
           this.payer(p, proprio, loyer, 'loyer');
         } else if (pr.hypotheque && pr.proprio !== p.id) {
           this.log(`${c.nom} est hypothéquée : pas de loyer.`);
+          info('hypothéquée : pas de loyer');
         }
         break;
       }
       case 'impot': case 'taxe':
         this.log(`💸 ${p.nom} paie ${this.argent(c.montant)} (${c.nom}).`);
         this.payer(p, null, c.montant, 'taxe');
+        info(`paie ${this.argent(c.montant)}`);
         break;
       case 'chance': case 'caisse':
         this.tirerCarte(p, c.type);
@@ -380,6 +408,7 @@ class Partie {
       case 'allerPrison':
         this.log(`🚓 ${p.nom} part en ${this.nomCase(PRISON)} !`);
         this.envoyerPrison(p);
+        this.dernierCoup = { joueurId: p.id, case: PRISON, info: 'envoyé au ' + this.nomCase(PRISON) };
         break;
       case 'parc':
         if (this.cfg.cagnotteParcGratuit && this.cagnotte > 0) {
@@ -577,10 +606,11 @@ class Partie {
     if (p.dette) throw new Error("Règle d'abord ta dette.");
     const { case: i, etapeApres } = this.tour.achatEnAttente;
     const c = this.plateau[i];
-    if (p.argent < c.prix) throw new Error("Pas assez d'argent ! Hypothèque une propriété ou mets-la aux enchères.");
+    if (p.argent < c.prix) throw new Error("Pas assez d'argent ! Hypothèque une propriété ou passe ton tour.");
     p.argent -= c.prix;
     this.proprietes[i].proprio = p.id;
     this.log(`🛒 ${p.nom} achète ${c.nom} pour ${this.argent(c.prix)}.`);
+    if (this.dernierCoup) this.dernierCoup.info = 'achète !';
     this.tour.etape = etapeApres;
     this.tour.achatEnAttente = null;
   }
@@ -591,7 +621,8 @@ class Partie {
     const { case: i, etapeApres } = this.tour.achatEnAttente;
     this.tour.etape = etapeApres;
     this.tour.achatEnAttente = null;
-    this.lancerEnchere(i);
+    if (this.cfg.encheres) this.lancerEnchere(i);
+    else this.log(`🙅 ${p.nom} n'achète pas ${this.nomCase(i)}.`);
   }
 
   lancerEnchere(i) {
@@ -608,7 +639,7 @@ class Partie {
   programmerFinEnchere() {
     clearTimeout(this.enchere.timer);
     this.enchere.fin = Date.now() + DUREE_ENCHERE;
-    this.enchere.timer = setTimeout(() => { this.adjuger(); this.onChange(); }, DUREE_ENCHERE);
+    this.enchere.timer = setTimeout(() => { this.adjuger(); this.enchainer(); this.onChange(); }, DUREE_ENCHERE);
   }
 
   encherir(p, montant) {
@@ -717,6 +748,7 @@ class Partie {
     const groupe = this.casesDuGroupe(c.groupe).map((x) => this.proprietes[x.i]);
     if (groupe.some((x) => x.hypotheque)) throw new Error('Une propriété de cette couleur est hypothéquée.');
     if (pr.maisons >= 5) throw new Error('Il y a déjà un hôtel.');
+    if (this.tour.aConstruit) throw new Error('Une seule construction par tour !');
     if (pr.maisons > Math.min(...groupe.map((x) => x.maisons))) throw new Error('Construis de façon uniforme : les autres terrains de la couleur d\'abord !');
     if (p.argent < c.prixMaison) throw new Error("Pas assez d'argent.");
     if (pr.maisons === 4) {
@@ -728,6 +760,7 @@ class Partie {
     }
     p.argent -= c.prixMaison;
     pr.maisons++;
+    this.tour.aConstruit = true;
     this.log(`🏗️ ${p.nom} construit ${pr.maisons === 5 ? 'un hôtel' : 'une maison'} sur ${c.nom}.`);
   }
 
@@ -879,6 +912,8 @@ class Partie {
       echanges: this.echanges,
       journal: this.journal.slice(-40),
       derniereCarte: this.derniereCarte,
+      dernierCoup: this.dernierCoup || null,
+      encheres: !!this.cfg.encheres,
       cagnotte: this.cfg.cagnotteParcGratuit ? this.cagnotte : null,
       maisonsDispo: this.maisonsDispo,
       hotelsDispo: this.hotelsDispo,

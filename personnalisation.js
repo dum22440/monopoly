@@ -31,6 +31,20 @@ module.exports = {
   // true = activé, false = règle officielle (rien ne se passe)
   cagnotteParcGratuit: false,
 
+  // Quand un joueur ne veut pas acheter une case :
+  // false = elle reste simplement à vendre (plus rapide)
+  // true  = tout le monde peut l'acheter aux enchères
+  encheres: false,
+
+  // ---------------------------------------------------------------
+  //  LOYERS (en % du prix du terrain)
+  //  Ordre : terrain nu, 1 maison, 2 maisons, 3 maisons, 4 maisons, hôtel
+  //  Ex : un terrain à 200 € avec 0.35 → loyer de 70 € avec 1 maison.
+  //  (Le Monopoly officiel monte beaucoup plus fort, jusqu'à ×100 !)
+  //  Le loyer d'un terrain nu est doublé quand on a toute la couleur.
+  // ---------------------------------------------------------------
+  coefficientsLoyers: [0.1, 0.35, 0.7, 1.1, 1.4, 1.7],
+
   // ---------------------------------------------------------------
   //  LES 22 PROPRIÉTÉS (les gens de la promo)
   //  Elles sont rangées par couleur, de la moins chère à la plus chère.
@@ -118,38 +132,38 @@ module.exports = {
   //  CARTES CHANCE ❓
   // ---------------------------------------------------------------
   chance: [
-    { texte: "Tu arrives en retard en amphi en prétendant que le tram est tombé en panne. Personne n'y croit. Direction le cours de Valéria !", effet: "prison" },
-    { texte: "Tu as couru jusqu'au RU pour éviter la queue : record battu ! Avance jusqu'à la case Départ.", effet: "aller", case: 0 },
-    { texte: "Tu as oublié ta clé USB avec le dossier à rendre… Recule de 3 cases pour aller la chercher.", effet: "reculer", cases: 3 },
-    { texte: "Il y a des frites au RU ! Fonce à la gare la plus proche.", effet: "gareProche" },
-    { texte: "La fac a encore une idée de génie. Va à la compagnie la plus proche.", effet: "compagnieProche" },
-    { texte: "Tu as vendu tes fiches de révision à toute la promo. Reçois 150 €.", effet: "argent", montant: 150 },
-    { texte: "Ton téléphone a sonné en plein partiel. Paie 50 € d'amende.", effet: "argent", montant: -50 },
-    { texte: "Tu es élu délégué de la promo ! Chaque joueur te paie 20 € pour ta campagne.", effet: "chaqueJoueur", montant: 20 },
+    { texte: "Tu t'es réveillé chez quelqu'un dont tu ne connais même pas le prénom. Walk of shame jusqu'à la case Départ.", effet: "aller", case: 0 },
+    { texte: "Soirée d'inté : tu as fini en caleçon sur une table du Cube. Direction le cours de Valéria !", effet: "prison" },
+    { texte: "Ton date Tinder était en fait ton chargé de TD. Recule de 3 cases, vite.", effet: "reculer", cases: 3 },
+    { texte: "Tu as vendu des photos de tes pieds sur Internet. Ça marche étonnamment bien : reçois 150 €.", effet: "argent", montant: 150 },
+    { texte: "Ton ex a liké ta story à 3h du mat'. Tu craques et tu l'invites à boire un verre : paie 50 €.", effet: "argent", montant: -50 },
+    { texte: "Tu as dragué toute la promo pendant la soirée. Chaque joueur te paie 20 € pour que tu arrêtes.", effet: "chaqueJoueur", montant: 20 },
+    { texte: "Ton coloc a entendu tes exploits de la nuit à travers le mur. Achète-lui des boules Quies : 25 € par maison, 100 € par hôtel.", effet: "reparations", parMaison: 25, parHotel: 100 },
+    { texte: "Tu cherches un coin tranquille avec ton crush : fonce à la gare la plus proche.", effet: "gareProche" },
+    { texte: "Gueule de bois XXL : file à la compagnie la plus proche chercher un Doliprane.", effet: "compagnieProche" },
+    { texte: "Ton crush t'a enfin répondu « 😏 ». Porté par l'espoir, tu avances de 2 cases.", effet: "avancer", cases: 2 },
+    { texte: "Tu as envoyé par erreur une photo très perso dans le groupe de la promo. Plus personne n'ose te regarder : carte « Libéré du cours de Valéria ».", effet: "liberation" },
+    { texte: "Panne de capotes à la pharmacie : taxi jusqu'à celle de garde, paie 20 €.", effet: "argent", montant: -20 },
     { texte: "Louis t'invite à boire un verre. Va directement chez Louis.", effet: "aller", case: 39 },
-    { texte: "Tu as un projet de groupe avec Alice. Rends-toi chez Alice.", effet: "aller", case: 26 },
-    { texte: "Contrôle surprise de ton appart par le proprio : paie 25 € par maison et 100 € par hôtel.", effet: "reparations", parMaison: 25, parHotel: 100 },
-    { texte: "Valéria est malade, cours annulé ! Carte « Libéré du cours de Valéria ».", effet: "liberation" },
-    { texte: "Tu as renversé ton plateau au RU devant toute la promo. Paie 15 € de pressing.", effet: "argent", montant: -15 },
-    { texte: "Tu glisses sur le sol fraîchement lavé de la BU et avances de 2 cases.", effet: "avancer", cases: 2 },
+    { texte: "Projet de groupe chez Alice (il paraît qu'il y aura surtout de l'apéro). Rends-toi chez Alice.", effet: "aller", case: 26 },
   ],
 
   // ---------------------------------------------------------------
   //  CARTES CAISSE DE COMMUNAUTÉ 📦
   // ---------------------------------------------------------------
   caisse: [
-    { texte: "Tu as eu 20/20 au partiel (personne ne sait comment). Reçois 100 €.", effet: "argent", montant: 100 },
-    { texte: "C'est ton anniversaire ! Chaque joueur t'offre 10 €.", effet: "chaqueJoueur", montant: 10 },
-    { texte: "Tu as perdu ta carte étudiante. Paie 50 € pour en refaire une.", effet: "argent", montant: -50 },
-    { texte: "La bourse du CROUS tombe enfin ! Reçois 50 €.", effet: "argent", montant: 50 },
-    { texte: "Tu as « emprunté » les notes de tout le monde pendant un semestre. Rembourse 20 € à chaque joueur.", effet: "chaqueJoueur", montant: -20 },
-    { texte: "Tu as ronflé en amphi. Direction le cours de Valéria !", effet: "prison" },
-    { texte: "Tes parents ont fait un virement surprise. Retourne à la case Départ.", effet: "aller", case: 0 },
-    { texte: "Soirée d'intégration : paie 100 €.", effet: "argent", montant: -100 },
-    { texte: "Tu as retrouvé 20 € dans la poche de ton jean au lavage.", effet: "argent", montant: 20 },
-    { texte: "Tu as un mot du médecin (bidon). Carte « Libéré du cours de Valéria ».", effet: "liberation" },
-    { texte: "Tu as cassé la machine à café du Cube. Paie 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
-    { texte: "Tu as revendu tes vieux bouquins à la BU. Reçois 25 €.", effet: "argent", montant: 25 },
-    { texte: "Tu as raté le tram et marché jusqu'à la fac. Recule d'1 case, tu es épuisé.", effet: "reculer", cases: 1 },
+    { texte: "Tu as gagné le concours de t-shirt mouillé de la soirée BDE. Reçois 100 €.", effet: "argent", montant: 100 },
+    { texte: "C'est ton anniversaire ! Chaque joueur t'offre 10 € (et un gage).", effet: "chaqueJoueur", montant: 10 },
+    { texte: "Tu as perdu ta carte étudiante… et ton caleçon, au même endroit. Paie 50 €.", effet: "argent", montant: -50 },
+    { texte: "Ton plan d'un soir t'a remboursé le kebab de 4h du mat'. Reçois 20 €.", effet: "argent", montant: 20 },
+    { texte: "Tu as raconté les secrets de chambre de toute la promo. Paie 20 € à chaque joueur pour acheter leur silence.", effet: "chaqueJoueur", montant: -20 },
+    { texte: "Surpris en train de te bécoter dans les toilettes de la BU. Direction le cours de Valéria !", effet: "prison" },
+    { texte: "Retour de soirée à 6h du mat' : tu retombes pile sur la case Départ.", effet: "aller", case: 0 },
+    { texte: "Soirée « tenue légère exigée » : paie 100 € de déguisement (pour trois bouts de tissu).", effet: "argent", montant: -100 },
+    { texte: "Tu retrouves 50 € et un string qui n'est pas à toi dans ta poche. Tu gardes les deux.", effet: "argent", montant: 50 },
+    { texte: "Ton suçon est trop visible pour aller en cours. Mot d'excuse : carte « Libéré du cours de Valéria ».", effet: "liberation" },
+    { texte: "La soirée chez toi a fini en bataille de mousse géante. Le proprio réclame 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
+    { texte: "Tu revends tes capotes parfumées à la pause clope. Reçois 25 €.", effet: "argent", montant: 25 },
+    { texte: "Tu as raté le tram en matant un(e) inconnu(e) trop canon. Recule d'1 case.", effet: "reculer", cases: 1 },
   ],
 };

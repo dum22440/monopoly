@@ -26,6 +26,8 @@ function verifier(g) {
     if (p.position < 0 || p.position > 39) throw new Error('position invalide');
   }
   if (g.phase === 'jeu' && g.courant().faillite) throw new Error('le joueur courant est en faillite');
+  if (g.phase === 'jeu' && g.tour.etape === 'fin' && !g.enchere && !g.joueurs.some((p) => p.dette))
+    throw new Error("le tour aurait dû passer automatiquement");
   JSON.stringify(g.etatPublic()); // doit être envoyable
 }
 
@@ -34,8 +36,8 @@ function essayer(g, id, a) {
   verifier(g);
 }
 
-function partie(nbJoueurs) {
-  const g = new Partie('TEST', config, () => {});
+function partie(nbJoueurs, encheres) {
+  const g = new Partie('TEST', { ...config, encheres }, () => {});
   const ids = [];
   for (let k = 0; k < nbJoueurs; k++) ids.push(g.ajouterJoueur('Robot' + k).id);
   g.action(ids[0], { type: 'demarrer' });
@@ -45,7 +47,7 @@ function partie(nbJoueurs) {
       const qui = pick(g.enchere.actifs);
       if (Math.random() < 0.6) essayer(g, qui, { type: 'encherir', montant: g.enchere.montant + 1 + hasard(80) });
       else essayer(g, qui, { type: 'abandonEnchere' });
-      if (g.enchere && Math.random() < 0.1) { g.adjuger(); verifier(g); }
+      if (g.enchere && Math.random() < 0.1) { g.adjuger(); g.enchainer(); verifier(g); }
       continue;
     }
     // Les joueurs endettés vendent ou font faillite
@@ -78,7 +80,7 @@ function partie(nbJoueurs) {
 }
 
 const N = +process.env.N || 150;
-for (let k = 0; k < N; k++) partie(2 + (k % 5));
+for (let k = 0; k < N; k++) partie(2 + (k % 5), k % 2 === 0);
 console.log(`✅ ${N} parties jouées par des robots, ${finies} terminées par une victoire.`);
 console.log(`   ${actionsOk} actions acceptées, ${refus} actions interdites correctement refusées. Aucune règle violée.`);
 process.exit(0);

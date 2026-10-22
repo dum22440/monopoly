@@ -93,7 +93,9 @@ Render redémarre tout seul avec les nouveaux noms en 2 à 3 minutes.
 ---
 
 ## 🎮 Règles intégrées
-Achat, loyers (doublés quand on a toute la couleur), maisons et hôtels (construction uniforme), gares, compagnies,
-prison (3 essais pour faire un double, amende de 50, carte de libération), double = rejouer, 3 doubles = prison,
-enchères si on refuse d'acheter, hypothèques (+10 % pour lever), dettes et faillite, échanges entre joueurs.
-Option « cagnotte du parc gratuit » réglable dans `personnalisation.js`.
+- **Un tour = on lance les dés, on achète (ou pas), et le tour passe tout seul au joueur suivant.**
+- Pour construire, ouvre **🏠 Mes terrains** au début de ton tour, avant de lancer les dés : **une seule construction par tour**, et il faut posséder toute la couleur.
+- Loyers doublés quand on a toute la couleur ; loyers plus doux que le vrai Monopoly (réglables dans `personnalisation.js`, partie `coefficientsLoyers`).
+- Gares, compagnies, prison (3 essais pour faire un double, sortie à 50, carte de libération), double = rejouer, 3 doubles = prison.
+- Hypothèques (+10 % pour lever), dettes et faillite, échanges entre joueurs (bouton 🤝).
+- Options dans `personnalisation.js` : enchères quand on refuse d'acheter (`encheres`), cagnotte du parc gratuit (`cagnotteParcGratuit`).

@@ -4,7 +4,7 @@
 //  Toutes les règles sont vérifiées par le serveur, pas ici.
 // =====================================================================
 
-const PIONS = ['🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
+const PIONS = ['🏎️', '🏍️', '🐆', '🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
 const ICONES = { depart: '🏁', prison: '🚔', parc: '☕', allerPrison: '👮', chance: '❓', caisse: '📦',
   gare: '🚉', compagnie: '💡', impot: '💸', taxe: '💎' };
 const $ = (s) => document.querySelector(s);
@@ -257,7 +257,6 @@ function construirePlateau() {
     d.onclick = () => ouvrirPropriete(c.i);
     pl.insertBefore(d, $('#pions'));
   }
-  $('#centre-titre').textContent = etat.nomDuJeu;
   document.title = etat.nomDuJeu;
   window.addEventListener('resize', () => placerPions(false));
 }
@@ -400,7 +399,6 @@ function dessinerJoueurs(ancien) {
   for (let k = 0; k < 6; k++) $('#siege-' + k).innerHTML = '';
   etat.joueurs.forEach((_, rang) => {
     const p = etat.joueurs[(debut + rang) % n];
-    const props = etat.plateau.filter((c) => etat.proprietes[c.i] && etat.proprietes[c.i].proprio === p.id);
     const statut = p.faillite ? '💀 Faillite'
       : [p.enPrison ? `🚔 ${esc(etat.plateau[10].nom)}` : '', p.cartesLiberation ? `🔑×${p.cartesLiberation}` : '',
         p.connecte ? '' : '<span class="hors-ligne">📴 déconnecté</span>', p.dette ? `⚠️ doit ${argent(p.dette.montant)}` : ''].filter(Boolean).join(' · ');
@@ -414,8 +412,7 @@ function dessinerJoueurs(ancien) {
           <div class="somme">${argent(p.argent)}</div>
         </div>
       </div>
-      <div class="details">${statut} ${exclure} ${props.map((c) => `<span class="mini-prop ${etat.proprietes[c.i].hypotheque ? 'hyp' : ''}" title="${esc(c.nom)}"
-        data-case="${c.i}" style="background:${c.couleur || (c.type === 'gare' ? '#555' : '#ccc')}"></span>`).join('')}</div>`;
+      ${statut || exclure ? `<div class="details">${statut} ${exclure}</div>` : ''}`;
   });
   // Petite animation "+200 €" / "-50 €"
   if (ancien && ancien.phase !== 'salon') for (const p of etat.joueurs) {
@@ -440,6 +437,12 @@ for (let k = 0; k < 6; k++) $('#siege-' + k).onclick = (e) => {
 function dessinerCentre() {
   const info = $('#centre-info'), act = $('#actions');
   if (animationEnCours) return;
+  // Ligne 1 : où vient d'arriver le dernier joueur qui a bougé (et ce qui lui arrive)
+  const dc = etat.dernierCoup;
+  const qui = dc && joueur(dc.joueurId);
+  $('#position').innerHTML = qui
+    ? `${qui.pion} <b>${esc(qui.nom)}</b> est sur <b>${esc(etat.plateau[dc.case].nom)}</b>${dc.info ? `<br><small>${esc(dc.info)}</small>` : ''}`
+    : '';
   if (etat.phase === 'fin') {
     info.innerHTML = `🏆 <b>${nomJ(etat.gagnant)}</b> a gagné !`;
     act.innerHTML = '<button class="btn rose" id="btn-rejouer">🔁 Nouvelle partie</button>';
@@ -453,40 +456,36 @@ function dessinerCentre() {
   let texte = '';
   const endettes = etat.joueurs.filter((p) => p.dette);
 
+  // Ligne 2 : à qui de jouer, et les boutons
   if (m && m.dette) {
-    texte = `⚠️ Tu dois <b>${argent(m.dette.montant)}</b> ! Vends des maisons ou hypothèque (clique sur tes propriétés).`;
+    texte = `⚠️ Tu dois <b>${argent(m.dette.montant)}</b> ! Vends ou hypothèque (touche tes propriétés).`;
     boutons.push(`<button class="btn vert" data-a="payerDette" ${m.argent < m.dette.montant ? 'disabled' : ''}>💸 Payer</button>`);
     boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes propriétés</button>');
     boutons.push('<button class="btn rouge" data-a="faillite">💀 Faillite</button>');
   } else if (endettes.length) {
-    texte = `⏳ ${endettes.map((p) => `<b>${esc(p.nom)}</b>`).join(', ')} doit régler une dette…`;
+    texte = `⏳ ${endettes.map((p) => `<b>${esc(p.nom)}</b>`).join(', ')} doit trouver de l'argent…`;
   } else if (etat.enchere) {
     texte = '🔨 Enchères en cours…';
   } else if (t.joueurId === moi) {
-    if (t.etape === 'lancer') {
-      if (m.enPrison) {
-        texte = `🚔 Tu es en <b>${esc(etat.plateau[10].nom)}</b> (essai ${m.toursPrison + 1}/3)`;
-        boutons.push('<button class="btn rose principal" data-a="lancer">🎲 Tenter un double</button>');
-        boutons.push(`<button class="btn jaune" data-a="payerPrison" ${m.argent < 50 ? 'disabled' : ''}>Payer ${argent(50)}</button>`);
-        if (m.cartesLiberation) boutons.push('<button class="btn vert" data-a="carteLiberation">🔑 Utiliser ma carte</button>');
-      } else {
-        texte = t.doubles ? '🎉 Double ! Rejoue !' : "🎯 C'est <b>ton tour</b> !";
-        boutons.push('<button class="btn rose principal" data-a="lancer">🎲 Lancer les dés</button>');
-      }
-    } else if (t.etape === 'acheter') {
+    if (t.etape === 'acheter') {
       const c = etat.plateau[t.achat];
-      texte = `Acheter <b>${esc(c.nom)}</b> ?`;
-      boutons.push(`<button class="btn vert principal" data-a="acheter" ${m.argent < c.prix ? 'disabled' : ''}>🛒 Acheter ${argent(c.prix)}</button>`);
-      boutons.push('<button class="btn jaune" data-a="refuser">🔨 Enchères</button>');
-      boutons.push(`<button class="btn gris" data-a="voir" data-case="${c.i}">🔍 Détails</button>`);
+      texte = `Acheter <b>${esc(c.nom)}</b> pour <b>${argent(c.prix)}</b> ?`;
+      boutons.push(`<button class="btn vert principal" data-a="acheter" ${m.argent < c.prix ? 'disabled' : ''}>✅ Acheter</button>`);
+      boutons.push(`<button class="btn gris" data-a="refuser">${etat.encheres ? '🔨 Enchères' : '❌ Non merci'}</button>`);
+    } else if (t.etape === 'lancer' && m.enPrison) {
+      texte = `🚔 Tu es au <b>${esc(etat.plateau[10].nom)}</b> (essai ${m.toursPrison + 1}/3)`;
+      boutons.push('<button class="btn rose principal" data-a="lancer">🎲 Tenter un double</button>');
+      boutons.push(`<button class="btn jaune" data-a="payerPrison" ${m.argent < 50 ? 'disabled' : ''}>Sortir pour ${argent(50)}</button>`);
+      if (m.cartesLiberation) boutons.push('<button class="btn vert" data-a="carteLiberation">🔑 Utiliser ma carte</button>');
+    } else if (t.etape === 'lancer') {
+      texte = t.doubles ? '🎉 Double ! <b>Rejoue</b> !' : "🎯 C'est <b>ton tour</b> !";
+      boutons.push('<button class="btn rose principal" data-a="lancer">🎲 Lancer les dés</button>');
+      boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes terrains</button>');
     } else {
-      texte = 'Gère tes propriétés, propose des échanges… puis passe ton tour.';
       boutons.push('<button class="btn bleu principal" data-a="finTour">✅ Fin du tour</button>');
     }
-    if (t.etape !== 'acheter') boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes propriétés</button>');
   } else {
     texte = `Au tour de <b>${courant.pion} ${esc(courant.nom)}</b>${courant.connecte ? '' : ' (déconnecté…)'}`;
-    if (m && !m.faillite) boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes propriétés</button>');
   }
   info.innerHTML = texte;
   act.innerHTML = boutons.join('');
@@ -504,8 +503,6 @@ $('#actions').onclick = (e) => {
 
 function dessinerJournal() {
   $('#journal').innerHTML = etat.journal.slice().reverse().map((l) => `<li>${esc(l.txt)}</li>`).join('');
-  const dernier = etat.journal[etat.journal.length - 1];
-  $('#dernier-evenement').textContent = dernier ? dernier.txt : '';
 }
 
 // Carte Chance / Caisse de communauté
