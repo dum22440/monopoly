@@ -5,7 +5,7 @@ const config = require('../personnalisation');
 
 const hasard = (n) => Math.floor(Math.random() * n);
 const pick = (t) => t[hasard(t.length)];
-let actionsOk = 0, refus = 0, finies = 0;
+let actionsOk = 0, refus = 0, finies = 0, malchances = 0;
 
 function verifier(g) {
   let maisons = 0, hotels = 0;
@@ -28,7 +28,11 @@ function verifier(g) {
   if (g.phase === 'jeu' && g.courant().faillite) throw new Error('le joueur courant est en faillite');
   if (g.phase === 'jeu' && g.tour.etape === 'fin' && !g.enchere && !g.joueurs.some((p) => p.dette))
     throw new Error("le tour aurait dû passer automatiquement");
-  JSON.stringify(g.etatPublic()); // doit être envoyable
+  const cm = g.casesMalchance;
+  if (cm.length !== config.malchance.nombreDeCases || new Set(cm).size !== cm.length || cm.some((i) => [0, 10, 30].includes(i)))
+    throw new Error('cases malchance invalides : ' + cm);
+  const pub = JSON.stringify(g.etatPublic()); // doit être envoyable
+  if (pub.includes('casesMalchance')) throw new Error('les cases malchance ne doivent pas être visibles');
 }
 
 function essayer(g, id, a) {
@@ -77,10 +81,11 @@ function partie(nbJoueurs, encheres) {
   }
   if (g.enchere) clearTimeout(g.enchere.timer);
   if (g.phase === 'fin') finies++;
+  malchances += g.derniereMalchance ? g.derniereMalchance.seq : 0;
 }
 
 const N = +process.env.N || 150;
 for (let k = 0; k < N; k++) partie(2 + (k % 5), k % 2 === 0);
-console.log(`✅ ${N} parties jouées par des robots, ${finies} terminées par une victoire.`);
+console.log(`✅ ${N} parties jouées par des robots, ${finies} terminées par une victoire, ${malchances} malchances déclenchées.`);
 console.log(`   ${actionsOk} actions acceptées, ${refus} actions interdites correctement refusées. Aucune règle violée.`);
 process.exit(0);

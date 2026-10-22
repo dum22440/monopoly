@@ -97,5 +97,6 @@ Render redémarre tout seul avec les nouveaux noms en 2 à 3 minutes.
 - Pour construire, ouvre **🏠 Mes terrains** au début de ton tour, avant de lancer les dés : **une seule construction par tour**, et il faut posséder toute la couleur.
 - Loyers doublés quand on a toute la couleur ; loyers plus doux que le vrai Monopoly (réglables dans `personnalisation.js`, partie `coefficientsLoyers`).
 - Gares, compagnies, prison (3 essais pour faire un double, sortie à 50, carte de libération), double = rejouer, 3 doubles = prison.
+- 💥 **Cases MALCHANCE invisibles** : quelques cases piégées au hasard (elles changent de place après chaque piège). Punition tirée au sort : donner un bien, le revendre, donner de l'argent ou en perdre. Blagues et réglages dans `personnalisation.js`, partie `malchance`.
 - Hypothèques (+10 % pour lever), dettes et faillite, échanges entre joueurs (bouton 🤝).
 - Options dans `personnalisation.js` : enchères quand on refuse d'acheter (`encheres`), cagnotte du parc gratuit (`cagnotteParcGratuit`).

@@ -84,6 +84,56 @@ module.exports = {
   },
 
   // ===============================================================
+  //  💥 CASES MALCHANCE (invisibles !)
+  // ===============================================================
+  //  Au début de chaque partie, quelques cases sont piégées au hasard.
+  //  Personne ne sait lesquelles. Quand un joueur tombe dessus avec les dés :
+  //  gros MALCHANCE rouge + une blague + une punition tirée au sort.
+  //  Ensuite la case piégée change de place.
+  //
+  //  Dans les blagues, tu peux utiliser :
+  //    {bien}    → le nom de la propriété perdue
+  //    {joueur}  → le joueur qui en profite
+  //    {montant} → la somme d'argent
+  // ---------------------------------------------------------------
+  malchance: {
+    nombreDeCases: 3,     // combien de cases piégées en même temps (0 = désactivé)
+    montant: 100,         // argent donné ou perdu
+
+    // 1) Le joueur DONNE une de ses propriétés à un autre joueur
+    donnerUnBien: [
+      "Tu as parié {bien} au beer-pong contre {joueur}… et tu as perdu. {bien} appartient maintenant à {joueur}.",
+      "Tu t'es endormi(e) en pleine soirée : {joueur} en a profité pour te piquer {bien}.",
+      "{bien} en a eu marre de toi et a emménagé chez {joueur}. C'est pas toi, c'est {bien}.",
+      "Tu as joué {bien} à pierre-feuille-ciseaux contre {joueur}. Tu as fait pierre. {joueur} a fait feuille.",
+    ],
+
+    // 2) Le joueur VEND une de ses propriétés à la banque (à moitié prix)
+    vendreUnBien: [
+      "Fin de mois difficile, même les pâtes sont trop chères : tu revends {bien} à la banque pour {montant}.",
+      "Ton banquier a vu tes dépenses au bar. Saisie express : {bien} est revendu pour {montant}.",
+      "Tu as vendu {bien} sur Leboncoin pour te payer un kebab. Tu récupères {montant}.",
+      "Le CROUS a oublié de verser ta bourse. Tu brades {bien} pour {montant}.",
+    ],
+
+    // 3) Le joueur DONNE de l'argent à un autre joueur
+    donnerArgent: [
+      "Tu as perdu un pari stupide contre {joueur} (« t'es pas cap' »). Tu lui donnes {montant}.",
+      "{joueur} a des photos de toi en soirée. Pour qu'elles restent secrètes, tu paies {montant}.",
+      "Tu as rayé la voiture de {joueur} sur le Parking en faisant un créneau. Tu lui dois {montant}.",
+      "Tu as mangé le dernier yaourt de {joueur} dans le frigo commun. Dédommagement : {montant}.",
+    ],
+
+    // 4) Le joueur PERD de l'argent (il va à la banque)
+    perdreArgent: [
+      "Ton téléphone est tombé dans les toilettes du RU. Réparation : {montant}.",
+      "Contrôlé(e) dans le tram sans ticket… et en pyjama. Amende : {montant}.",
+      "Tu as commandé 4 pizzas à 3h du matin et tu ne t'en souviens pas. Tu perds {montant}.",
+      "Tu as cru à une arnaque « gagnez un iPhone ». Spoiler : pas d'iPhone. Tu perds {montant}.",
+    ],
+  },
+
+  // ===============================================================
   //  LES CARTES
   // ===============================================================
   //  Chaque carte = { texte: "...", effet: "...", + des réglages }

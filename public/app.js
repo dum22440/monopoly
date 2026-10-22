@@ -20,6 +20,7 @@ let plateauConstruit = false;
 let positionsAffichees = {}; // où les pions sont dessinés en ce moment
 let fileEtats = Promise.resolve();
 let animationEnCours = false;
+let malchanceVue = null;
 let desSeqVu = 0, carteSeqVue = null, echangesVus = new Set(), modaleOuverte = null;
 
 // ---------------------------------------------------------------------
@@ -168,6 +169,7 @@ async function traiterEtat(s) {
   if (!plateauConstruit) construirePlateau();
 
   if (!ancien || ancien.phase === 'salon') {
+    malchanceVue = s.derniereMalchance && s.derniereMalchance.seq; // pas de ré-affichage en arrivant
     for (const p of s.joueurs) positionsAffichees[p.id] = p.position;
     desSeqVu = s.desSeq;
     if (s.tour && s.tour.des) dessinerDe($('#de1'), s.tour.des[0]), dessinerDe($('#de2'), s.tour.des[1]);
@@ -385,6 +387,7 @@ function dessinerTout(ancien) {
   dessinerEchanges();
   dessinerEnchere();
   dessinerCarte();
+  dessinerMalchance();
   if (modaleOuverte) modaleOuverte();
   if (etat.phase === 'fin' && (!ancien || ancien.phase !== 'fin')) victoire();
 }
@@ -517,6 +520,21 @@ function dessinerCarte() {
   el._t = setTimeout(() => el.classList.add('hidden'), 8000);
 }
 $('#carte-tiree').onclick = () => $('#carte-tiree').classList.add('hidden');
+
+// Gros écran rouge quand quelqu'un tombe sur une case MALCHANCE cachée
+function dessinerMalchance() {
+  const m = etat.derniereMalchance;
+  if (!m || m.seq === malchanceVue) return;
+  malchanceVue = m.seq;
+  $('#malchance-texte').textContent = m.texte;
+  $('#malchance-qui').textContent = `${m.joueur} · touche pour fermer`;
+  const el = $('#malchance');
+  el.classList.remove('hidden');
+  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.add('hidden'), 7000);
+}
+$('#malchance').onclick = () => $('#malchance').classList.add('hidden');
 
 // ---------------------------------------------------------------------
 //  FENÊTRES : propriété, gestion, échanges

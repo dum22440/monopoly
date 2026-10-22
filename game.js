@@ -134,6 +134,13 @@ function verifierConfig(cfg) {
     argent: ['montant'], aller: ['case'], avancer: ['cases'], reculer: ['cases'], prison: [], liberation: [],
     chaqueJoueur: ['montant'], reparations: ['parMaison', 'parHotel'], gareProche: [], compagnieProche: [],
   };
+  if (cfg.malchance) {
+    const m = cfg.malchance;
+    if (typeof m.nombreDeCases !== 'number') err.push('"malchance" : il faut un nombre pour "nombreDeCases".');
+    if (typeof m.montant !== 'number') err.push('"malchance" : il faut un nombre pour "montant".');
+    for (const k of ['donnerUnBien', 'vendreUnBien', 'donnerArgent', 'perdreArgent'])
+      if (!Array.isArray(m[k]) || !m[k].length || m[k].some((t) => typeof t !== 'string')) err.push(`"malchance" : il faut au moins une blague (entre guillemets) dans "${k}".`);
+  }
   for (const paquet of ['chance', 'caisse']) {
     const l = cfg[paquet];
     if (!Array.isArray(l) || l.length === 0) { err.push(`Le paquet "${paquet}" doit contenir au moins une carte.`); continue; }
@@ -186,6 +193,11 @@ class Partie {
     this.maisonsDispo = MAISONS_DISPO;
     this.hotelsDispo = HOTELS_DISPO;
     this.gagnant = null;
+    // Cases MALCHANCE : cachées, tirées au hasard, jamais envoyées aux navigateurs
+    this.casesMalchance = [];
+    this.derniereMalchance = null;
+    const nbMalchance = cfg.malchance ? Math.max(0, Math.min(10, cfg.malchance.nombreDeCases | 0)) : 0;
+    for (let k = 0; k < nbMalchance; k++) this.placerMalchance();
     this.derniereActivite = Date.now();
   }
 
@@ -317,7 +329,7 @@ class Partie {
         p.enPrison = false; p.toursPrison = 0;
         this.log(`🔓 Double ! ${p.nom} sort de ${this.nomCase(PRISON)}.`);
         this.tour.etape = 'fin'; // pas de relance après une sortie de prison
-        this.deplacer(p, d1 + d2);
+        this.deplacerAuxDes(p, d1 + d2);
         return;
       }
       p.toursPrison++;
@@ -332,7 +344,7 @@ class Partie {
       p.enPrison = false; p.toursPrison = 0;
       this.tour.etape = 'fin';
       this.payer(p, null, AMENDE_PRISON, 'amende');
-      this.deplacer(p, d1 + d2);
+      this.deplacerAuxDes(p, d1 + d2);
       return;
     }
 
@@ -346,7 +358,65 @@ class Partie {
       }
     }
     this.tour.etape = double ? 'lancer' : 'fin';
-    this.deplacer(p, d1 + d2);
+    this.deplacerAuxDes(p, d1 + d2);
+  }
+
+  // Déplacement avec les dés : c'est le seul cas où une case MALCHANCE se déclenche
+  deplacerAuxDes(p, n) {
+    const arrivee = (p.position + n) % 40;
+    this.deplacer(p, n);
+    if (this.casesMalchance.includes(arrivee) && !p.faillite && this.phase === 'jeu') this.malchance(p, arrivee);
+  }
+
+  // ------------------------------------------------------------- cases MALCHANCE
+  placerMalchance() {
+    const libres = [];
+    for (let i = 0; i < 40; i++) if (![0, PRISON, 30].includes(i) && !this.casesMalchance.includes(i)) libres.push(i);
+    this.casesMalchance.push(libres[crypto.randomInt(libres.length)]);
+  }
+
+  malchance(p, i) {
+    const m = this.cfg.malchance;
+    // La case piégée déménage ailleurs pour qu'on ne puisse pas la retenir
+    this.casesMalchance = this.casesMalchance.filter((x) => x !== i);
+    this.placerMalchance();
+
+    const autres = this.actifs().filter((x) => x.id !== p.id);
+    const cedables = Object.keys(this.proprietes).map(Number).filter((k) => {
+      if (this.proprietes[k].proprio !== p.id) return false;
+      const c = this.plateau[k];
+      return !c.groupe || this.casesDuGroupe(c.groupe).every((x) => this.proprietes[x.i].maisons === 0);
+    });
+    const possibles = ['perdreArgent'];
+    if (autres.length) possibles.push('donnerArgent');
+    if (cedables.length) possibles.push('vendreUnBien');
+    if (cedables.length && autres.length) possibles.push('donnerUnBien');
+    const type = possibles[crypto.randomInt(possibles.length)];
+    const cible = autres.length ? autres[crypto.randomInt(autres.length)] : null;
+    const bien = cedables.length ? cedables[crypto.randomInt(cedables.length)] : null;
+    let montant = m.montant;
+
+    if (type === 'donnerUnBien') {
+      this.proprietes[bien].proprio = cible.id;
+      // les propositions d'échange devenues impossibles disparaissent
+      this.echanges = this.echanges.filter((x) => { try { this.validerEchange(x); return true; } catch { return false; } });
+    } else if (type === 'vendreUnBien') {
+      const pr = this.proprietes[bien];
+      montant = pr.hypotheque ? 0 : this.plateau[bien].prix / 2;
+      pr.proprio = null; pr.hypotheque = false;
+      p.argent += montant;
+      this.echanges = this.echanges.filter((x) => { try { this.validerEchange(x); return true; } catch { return false; } });
+    }
+    const blagues = m[type];
+    const texte = blagues[crypto.randomInt(blagues.length)]
+      .replaceAll('{bien}', bien !== null ? this.nomCase(bien) : '')
+      .replaceAll('{joueur}', cible ? cible.nom : '')
+      .replaceAll('{montant}', this.argent(montant));
+    this.derniereMalchance = { texte, joueur: p.nom, seq: (this.derniereMalchance ? this.derniereMalchance.seq : 0) + 1 };
+    this.log(`💥 MALCHANCE pour ${p.nom} ! ${texte}`);
+    this.dernierCoup = { joueurId: p.id, case: i, info: '💥 MALCHANCE !' };
+    if (type === 'donnerArgent') this.payer(p, cible, montant, 'carte');
+    if (type === 'perdreArgent') this.payer(p, null, montant, 'taxe');
   }
 
   deplacer(p, n) {
@@ -912,6 +982,7 @@ class Partie {
       echanges: this.echanges,
       journal: this.journal.slice(-40),
       derniereCarte: this.derniereCarte,
+      derniereMalchance: this.derniereMalchance,
       dernierCoup: this.dernierCoup || null,
       encheres: !!this.cfg.encheres,
       cagnotte: this.cfg.cagnotteParcGratuit ? this.cagnotte : null,

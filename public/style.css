@@ -387,6 +387,19 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
 .victoire { text-align: center; font-size: 22px; }
 .victoire .grand { font-size: 70px; animation: rebond 1s ease-in-out infinite; }
 
+/* ---------- Écran MALCHANCE ---------- */
+.malchance {
+  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; cursor: pointer;
+  background: radial-gradient(circle, rgba(90, 0, 0, .93), rgba(15, 0, 0, .97)); animation: fondu .2s; backdrop-filter: blur(6px);
+}
+.malchance-boite { max-width: 600px; text-align: center; padding: 26px 20px; border-radius: 24px; border: 3px solid #ff1f1f; background: rgba(0,0,0,.45); box-shadow: 0 0 60px rgba(255,0,0,.5); animation: secousse .6s cubic-bezier(.36,.07,.19,.97); }
+.malchance-titre {
+  font-size: clamp(48px, 13vw, 120px); font-weight: 700; color: #ff1f1f; letter-spacing: 4px; line-height: 1;
+  text-shadow: 0 0 20px #ff0000, 0 0 50px #ff0000, 0 6px 0 #5a0000; animation: alarme .8s ease-in-out infinite alternate;
+}
+.malchance p { font-size: clamp(17px, 4.5vw, 24px); font-weight: 600; margin: 18px 0 10px; color: #fff; text-shadow: 0 2px 6px #000; }
+.malchance small { color: #ffb3b3; }
+
 /* ---------- Animations ---------- */
 @keyframes rebond { 0%, 100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(-12px) rotate(5deg); } }
 @keyframes apparition { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -407,6 +420,8 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
 @keyframes clignote { 50% { box-shadow: inset 0 0 0 4px var(--jaune), 0 0 16px var(--jaune); } }
 @keyframes flottant { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-34px); } }
 @keyframes fondu { from { opacity: 0; } }
+@keyframes secousse { 10%, 90% { transform: translateX(-4px) rotate(-1deg); } 20%, 80% { transform: translateX(8px) rotate(1deg); } 30%, 50%, 70% { transform: translateX(-14px) rotate(-2deg) scale(1.05); } 40%, 60% { transform: translateX(14px) rotate(2deg); } }
+@keyframes alarme { from { transform: scale(1); } to { transform: scale(1.08); color: #ff5050; } }
 @keyframes zoom { from { transform: scale(.85); opacity: 0; } }
 @keyframes toast { 0% { opacity: 0; transform: translateY(20px); } 10%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 
