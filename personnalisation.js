@@ -100,12 +100,12 @@ module.exports = {
 
     // 1) Le joueur DONNE sa propriété la plus chère à un autre joueur
     donnerUnBien: [
-      "Tu as parié {bien} au beer-pong contre {joueur}… et tu as perdu. {bien} appartient maintenant à {joueur}.",
+      "Tu as joué une partie de beer-pong contre {joueur}, en mettant {bien} en jeu… et tu as perdu. {bien} appartient maintenant à {joueur}.",
       "Tu t'es endormi(e) en pleine soirée : {joueur} en a profité pour te piquer {bien}.",
       "{bien} en a eu marre de toi et a emménagé chez {joueur}. C'est pas toi, c'est {bien}.",
-      "Tu as joué {bien} à pierre-feuille-ciseaux contre {joueur}. Tu as fait pierre. {joueur} a fait feuille.",
+      "Tu as joué à pierre-feuille-ciseaux contre {joueur}, en mettant {bien} en jeu. Tu as fait pierre, {joueur} a fait feuille : {bien} est pour {joueur}.",
       "Agathe a cru que tu draguais Théo. Pour te faire pardonner, tu offres {bien} à {joueur}.",
-      "Tu as parié {bien} que Dario ne finirait pas son trail. Il a fini premier. {bien} part chez {joueur}.",
+      "Tu as parié avec {joueur} que Dario ne finirait pas son trail, en mettant {bien} en jeu. Il a fini premier : {bien} part chez {joueur}.",
       "Ewen a codé une appli pour gérer ton patrimoine. Petit bug : {bien} a été transféré à {joueur}.",
       "Tu as échangé {bien} contre un tracteur de Lucas. Le tracteur ne démarre pas, et {bien} appartient maintenant à {joueur}.",
     ],
