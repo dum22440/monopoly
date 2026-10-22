@@ -72,8 +72,10 @@ const MAISONS_DISPO = 32;
 const HOTELS_DISPO = 12;
 const DUREE_ENCHERE = 12000; // ms sans nouvelle offre avant adjudication
 
-const PIONS = ['🏎️', '🏍️', '🐆', '🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
-const COULEURS = ['#ff3b6b', '#2ec5ff', '#ffd23f', '#3bff8f', '#b36bff', '#ff8a3b'];
+const PIONS = ['🏎️', '🏍️', '🐆', '🐸', '🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
+const MAX_JOUEURS = 8;          // en solo
+const MAX_JOUEURS_EQUIPES = 16; // en équipes de 2 (8 équipes)
+const COULEURS = ['#ff3b6b', '#2ec5ff', '#ffd23f', '#3bff8f', '#b36bff', '#ff8a3b', '#f2f2f2', '#ff9ecf'];
 
 // ---------------------------------------------------------------------
 //  Construction du plateau à partir du fichier de personnalisation
@@ -220,7 +222,12 @@ class Partie {
     this.plateau = construirePlateau(cfg);
     this.onChange = onChange;        // appelé après chaque modification pour prévenir les joueurs
     this.phase = 'salon';            // salon -> jeu -> fin
-    this.joueurs = [];
+    // Les "humains" sont les personnes connectées. Les "joueurs" sont ceux qui ont un pion
+    // sur le plateau : les humains eux-mêmes en solo, ou les équipes en mode équipes.
+    this.humains = [];
+    this.joueurs = this.humains;
+    this.modeEquipes = false;
+    this.membres = {}; // id d'un humain -> id de son équipe
     this.hoteId = null;
     this.proprietes = {};            // index de case -> { proprio, maisons (5 = hôtel), hypotheque }
     for (const c of this.plateau) if (c.prix) this.proprietes[c.i] = { proprio: null, maisons: 0, hypotheque: false };
@@ -263,13 +270,14 @@ class Partie {
   // ------------------------------------------------------------- salon
   ajouterJoueur(nom, pion) {
     if (this.phase !== 'salon') throw new Error('La partie a déjà commencé.');
-    if (this.joueurs.length >= 6) throw new Error('La partie est pleine (6 joueurs max).');
+    const max = this.modeEquipes ? MAX_JOUEURS_EQUIPES : MAX_JOUEURS;
+    if (this.humains.length >= max) throw new Error(`La partie est pleine (${max} joueurs max${this.modeEquipes ? ' en équipes' : ''}).`);
     nom = String(nom || '').trim().slice(0, 16);
     if (!nom) throw new Error('Choisis un pseudo.');
     if (this.joueurs.some((p) => p.nom.toLowerCase() === nom.toLowerCase())) throw new Error('Ce pseudo est déjà pris.');
     const pris = this.joueurs.map((p) => p.pion);
     if (!PIONS.includes(pion) || pris.includes(pion)) pion = PIONS.find((x) => !pris.includes(x));
-    const couleur = COULEURS.find((c) => !this.joueurs.some((p) => p.couleur === c));
+    const couleur = COULEURS.find((c) => !this.joueurs.some((p) => p.couleur === c)) || COULEURS[this.humains.length % COULEURS.length];
     const p = {
       id: crypto.randomBytes(6).toString('hex'),
       jeton: crypto.randomBytes(18).toString('hex'), // secret pour se reconnecter
@@ -290,14 +298,71 @@ class Partie {
     this.j(id).pion = pion;
   }
 
+  // Dans le salon d'attente, un joueur qui s'en va disparaît tout de suite de la liste
+  retirerDuSalon(id) {
+    if (this.phase !== 'salon') return;
+    const h = this.humain(id);
+    if (!h) return;
+    this.humains.splice(this.humains.indexOf(h), 1);
+    this.log(`👋 ${h.nom} a quitté le salon.`);
+    if (this.hoteId === id) this.hoteId = this.humains.length ? this.humains[0].id : null;
+  }
+
+  // L'hôte choisit dans le salon : chacun pour soi, ou équipes de 2 tirées au sort
+  choisirEquipes(id, actif) {
+    if (id !== this.hoteId) throw new Error("Seul l'hôte peut choisir le mode de jeu.");
+    if (this.phase !== 'salon') return;
+    if (!actif && this.humains.length > MAX_JOUEURS) throw new Error(`Vous êtes plus de ${MAX_JOUEURS} : il faut jouer en équipes.`);
+    this.modeEquipes = !!actif;
+    this.log(actif ? '👥 Mode équipes de 2 activé (tirées au sort au lancement).' : '👤 Mode chacun pour soi.');
+  }
+
   demarrer(id) {
     if (id !== this.hoteId) throw new Error("Seul l'hôte peut lancer la partie.");
     if (this.phase !== 'salon') return;
-    if (this.joueurs.length < 2) throw new Error('Il faut au moins 2 joueurs.');
-    melanger(this.joueurs);
+    if (this.modeEquipes) {
+      if (this.humains.length < 4) throw new Error('Il faut au moins 4 joueurs pour jouer en équipes.');
+      this.formerEquipes();
+    } else {
+      if (this.humains.length < 2) throw new Error('Il faut au moins 2 joueurs.');
+      melanger(this.joueurs);
+    }
     this.phase = 'jeu';
     this.log('🎉 La partie commence ! Ordre de jeu : ' + this.joueurs.map((p) => p.pion + ' ' + p.nom).join(', '));
     this.nouveauTour(this.joueurs[0]);
+  }
+
+  // Équipes de 2 tirées au sort (avec un nombre impair, la dernière équipe a 3 joueurs)
+  formerEquipes() {
+    const melange = melanger([...this.humains]);
+    const groupes = [];
+    for (let k = 0; k + 1 < melange.length; k += 2) groupes.push([melange[k], melange[k + 1]]);
+    if (melange.length % 2) groupes[groupes.length - 1].push(melange[melange.length - 1]);
+    this.joueurs = groupes.map((g, k) => {
+      const e = {
+        id: 'equipe' + k + crypto.randomBytes(3).toString('hex'),
+        nom: g.map((h) => h.nom).join(' & '), pion: g[0].pion, couleur: COULEURS[k % COULEURS.length],
+        argent: this.cfg.argentDeDepart,
+        position: 0, enPrison: false, toursPrison: 0, cartesLiberation: [],
+        faillite: false, connecte: g.some((h) => h.connecte), dette: null,
+        membres: g.map((h) => h.id),
+      };
+      for (const h of g) this.membres[h.id] = e.id;
+      return e;
+    });
+    this.log('👥 Équipes tirées au sort : ' + this.joueurs.map((e) => e.pion + ' ' + e.nom).join(' · '));
+  }
+
+  humain(id) { return this.humains.find((h) => h.id === id); }
+  // Le joueur (pion) que contrôle un humain : lui-même en solo, son équipe en mode équipes
+  entite(id) { return this.j(this.membres[id] || id); }
+
+  setConnecte(humainId, connecte) {
+    const h = this.humain(humainId);
+    if (!h) return;
+    h.connecte = connecte;
+    const e = this.entite(humainId);
+    if (e && e.membres) e.connecte = e.membres.some((m) => this.humain(m).connecte);
   }
 
   nouveauTour(p) {
@@ -320,11 +385,13 @@ class Partie {
   }
 
   actionBrute(id, a) {
-    const p = this.j(id);
-    if (!p) throw new Error('Joueur inconnu.');
     this.derniereActivite = Date.now();
     if (a.type === 'pion') return this.changerPion(id, a.pion);
     if (a.type === 'demarrer') return this.demarrer(id);
+    if (a.type === 'equipes') return this.choisirEquipes(id, a.actif);
+    if (a.type === 'exclure') return this.exclure(id, a.joueurId);
+    const p = this.entite(id); // en équipe, n'importe quel membre joue pour l'équipe
+    if (!p) throw new Error('Joueur inconnu.');
     if (this.phase !== 'jeu') throw new Error("La partie n'est pas en cours.");
     if (p.faillite) throw new Error('Tu as fait faillite, tu ne peux plus jouer.');
     switch (a.type) {
@@ -346,7 +413,6 @@ class Partie {
       case 'proposerEchange': return this.proposerEchange(p, a);
       case 'repondreEchange': return this.repondreEchange(p, a.echangeId, !!a.accepte);
       case 'annulerEchange': return this.annulerEchange(p, a.echangeId);
-      case 'exclure': return this.exclure(p, a.joueurId);
       default: throw new Error('Action inconnue.');
     }
   }
@@ -719,8 +785,9 @@ class Partie {
     if (this.tour && this.tour.joueurId === p.id) this.passerAuSuivant();
   }
 
-  exclure(hote, cibleId) {
-    if (hote.id !== this.hoteId) throw new Error("Seul l'hôte peut exclure un joueur.");
+  exclure(hoteId, cibleId) {
+    if (hoteId !== this.hoteId) throw new Error("Seul l'hôte peut exclure un joueur.");
+    if (this.phase !== 'jeu') return;
     const c = this.j(cibleId);
     if (!c || c.faillite) return;
     if (c.connecte) throw new Error('On ne peut exclure que les joueurs déconnectés.');
@@ -1019,10 +1086,10 @@ class Partie {
 
   // ------------------------------------------------------------- chat
   message(id, texte) {
-    const p = this.j(id);
+    const h = this.humain(id), e = this.entite(id);
     texte = String(texte || '').trim().slice(0, 300);
-    if (!p || !texte) return null;
-    const m = { de: p.nom, couleur: p.couleur, pion: p.pion, texte, t: Date.now() };
+    if (!h || !texte) return null;
+    const m = { de: h.nom, couleur: (e || h).couleur, pion: h.pion, texte, t: Date.now() };
     this.chat.push(m);
     if (this.chat.length > 100) this.chat.shift();
     return m;
@@ -1044,7 +1111,11 @@ class Partie {
         enPrison: p.enPrison, toursPrison: p.toursPrison, cartesLiberation: p.cartesLiberation.length,
         faillite: p.faillite, connecte: p.connecte, dette: p.dette,
         valeurLiquidable: this.phase === 'jeu' ? this.valeurLiquidable(p) : 0,
+        membres: p.membres ? p.membres.map((m) => { const h = this.humain(m); return { id: h.id, nom: h.nom, pion: h.pion, connecte: h.connecte }; }) : null,
       })),
+      equipes: this.modeEquipes,
+      membres: this.membres,
+      maxJoueurs: this.modeEquipes ? MAX_JOUEURS_EQUIPES : MAX_JOUEURS,
       tour: this.tour && { joueurId: this.tour.joueurId, etape: this.tour.etape, des: this.tour.des, doubles: this.tour.doubles,
         achat: this.tour.achatEnAttente ? this.tour.achatEnAttente.case : null },
       desSeq: this.desSeq,

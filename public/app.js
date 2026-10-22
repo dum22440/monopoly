@@ -14,7 +14,8 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const socket = io();
 let etat = null;          // dernier état reçu du serveur
-let moi = null;           // mon identifiant de joueur
+let moiHumain = null;     // mon identifiant (la personne)
+let moi = null;           // le pion que je contrôle : moi en solo, mon équipe en mode équipes
 let pionChoisi = PIONS[0];
 let plateauConstruit = false;
 let positionsAffichees = {}; // où les pions sont dessinés en ce moment
@@ -33,7 +34,7 @@ const memoire = {
 // sessionStorage = cet onglet (survit au rechargement) ; localStorage = ce navigateur
 const sessionActuelle = () => memoire.lire('monopoly-actuel', null, sessionStorage);
 function enregistrerSession(code, jeton, nom) {
-  memoire.ecrire('monopoly-actuel', { code, jeton }, sessionStorage);
+  memoire.ecrire('monopoly-actuel', { code, jeton, nom }, sessionStorage);
   const toutes = memoire.lire('monopoly-sessions', {});
   toutes[code] = (toutes[code] || []).filter((x) => x.jeton !== jeton);
   toutes[code].push({ jeton, nom, t: Date.now() });
@@ -67,6 +68,8 @@ const argent = (n) => `${formater(n)}\u00a0${etat ? etat.monnaie : '€'}`;
 const argentCourt = (n) => (n >= 1000 && n % 100 === 0 ? `${String(n / 1000).replace('.', ',')}\u00a0k${etat.monnaie}` : argent(n));
 const joueur = (id) => etat.joueurs.find((p) => p.id === id);
 const moiJ = () => etat && joueur(moi);
+// Accord au pluriel quand c'est une équipe (« Manon & Eva lisent leur carte »)
+const accord = (p, singulier, pluriel) => (p && p.membres ? pluriel : singulier);
 const nomJ = (id) => { const p = joueur(id); return p ? `${p.pion} ${esc(p.nom)}` : '?'; };
 function afficherEcran(id) {
   for (const e of ['accueil', 'salon', 'jeu']) $('#' + e).classList.toggle('hidden', e !== id);
@@ -98,10 +101,10 @@ if (codeLien) {
   const anciennes = memoire.lire('monopoly-sessions', {})[codeLien] || [];
   if (anciennes.length) {
     $('#bloc-reprendre').innerHTML = `<div class="reprendre"><p class="petit">Tu étais déjà dans cette partie :</p>${
-      anciennes.map((s) => `<button class="btn jaune large" data-jeton="${esc(s.jeton)}">↩️ Reprendre ma place : ${esc(s.nom)}</button>`).join('')}</div>`;
+      anciennes.map((s) => `<button class="btn jaune large" data-jeton="${esc(s.jeton)}" data-nom="${esc(s.nom)}">↩️ Reprendre ma place : ${esc(s.nom)}</button>`).join('')}</div>`;
     $('#bloc-reprendre').onclick = (e) => {
       const b = e.target.closest('button');
-      if (b) rejoindre({ code: codeLien, jeton: b.dataset.jeton });
+      if (b) rejoindre({ code: codeLien, jeton: b.dataset.jeton, nom: b.dataset.nom });
     };
   }
 }
@@ -143,12 +146,13 @@ $('#code').addEventListener('keydown', (e) => e.key === 'Enter' && $('#btn-rejoi
 socket.on('connect', () => {
   $('#bandeau-connexion').classList.add('hidden');
   const s = sessionActuelle();
-  if (s && (!codeLien || codeLien === s.code)) rejoindre({ code: s.code, jeton: s.jeton });
+  // (le pseudo sert à se réinscrire si on avait quitté le salon d'attente)
+  if (s && (!codeLien || codeLien === s.code)) rejoindre({ code: s.code, jeton: s.jeton, nom: s.nom, pion: pionChoisi });
 });
 socket.on('disconnect', () => { if (etat) $('#bandeau-connexion').classList.remove('hidden'); });
 
 socket.on('bienvenue', ({ code, joueurId, jeton, nom, chat }) => {
-  moi = joueurId;
+  moiHumain = moi = joueurId;
   enregistrerSession(code, jeton, nom);
   history.replaceState(null, '', '?partie=' + code); // le lien dans la barre d'adresse = lien à partager
   $('#chat').innerHTML = '';
@@ -168,6 +172,7 @@ socket.on('etat', (s) => { fileEtats = fileEtats.then(() => traiterEtat(s)).catc
 async function traiterEtat(s) {
   const ancien = etat;
   etat = s;
+  moi = (s.membres && s.membres[moiHumain]) || moiHumain;
   if (s.phase === 'salon') { afficherEcran('salon'); dessinerSalon(); return; }
   afficherEcran('jeu');
   if (!plateauConstruit) construirePlateau();
@@ -198,15 +203,21 @@ function dessinerSalon() {
   $('#salon-code').textContent = etat.code;
   $('#salon-joueurs').innerHTML = etat.joueurs.map((p) => `
     <li style="border-color:${p.couleur}"><span class="pion-g">${p.pion}</span>
-      <b>${esc(p.nom)}</b>${p.id === etat.hoteId ? ' 👑' : ''}${p.id === moi ? ' (toi)' : ''}
-      ${p.connecte ? '' : '<span class="hors-ligne">· déconnecté</span>'}</li>`).join('');
+      <b>${esc(p.nom)}</b>${p.id === etat.hoteId ? ' 👑' : ''}${p.id === moi ? ' (toi)' : ''}</li>`).join('');
   const m = moiJ();
   dessinerChoixPion($('#salon-pions'), etat.joueurs.map((p) => p.pion), m && m.pion, (p) => envoyer('pion', { pion: p }));
-  const hote = etat.hoteId === moi;
+  const hote = etat.hoteId === moiHumain;
+  const n = etat.joueurs.length, minimum = etat.equipes ? 4 : 2;
+  // Mode de jeu : seul le créateur de la partie peut le changer
+  $('#chk-equipes').checked = etat.equipes;
+  $('#chk-equipes').disabled = !hote;
+  $('#salon-mode').textContent = etat.equipes
+    ? `👥 Équipes de 2 tirées au sort au lancement (${n}/${etat.maxJoueurs} joueurs, 4 minimum)`
+    : `👤 Chacun pour soi (${n}/${etat.maxJoueurs} joueurs)`;
   $('#btn-demarrer').classList.toggle('hidden', !hote);
-  $('#btn-demarrer').disabled = etat.joueurs.length < 2;
+  $('#btn-demarrer').disabled = n < minimum;
   $('#salon-attente').textContent = hote
-    ? (etat.joueurs.length < 2 ? 'En attente d\'au moins un autre joueur…' : `${etat.joueurs.length} joueurs prêts. C'est parti quand tu veux !`)
+    ? (n < minimum ? `En attente d'au moins ${minimum} joueurs…` : `${n} joueurs prêts. C'est parti quand tu veux !`)
     : `En attente que ${joueur(etat.hoteId)?.nom || "l'hôte"} lance la partie…`;
   if (navigator.share) $('#btn-partager').classList.remove('hidden');
 }
@@ -217,6 +228,7 @@ $('#btn-copier').onclick = async () => {
 };
 $('#btn-partager').onclick = () => navigator.share({ title: etat.nomDuJeu, text: 'Viens jouer au Monopoly avec moi ! 🎲', url: lienPartie() }).catch(() => {});
 $('#btn-demarrer').onclick = () => envoyer('demarrer');
+$('#chk-equipes').onchange = (e) => envoyer('equipes', { actif: e.target.checked });
 
 // ---------------------------------------------------------------------
 //  PLATEAU
@@ -409,12 +421,14 @@ function dessinerTout(ancien) {
 
 // Les joueurs sont assis autour du plateau ; moi toujours en bas à gauche,
 // puis les autres dans l'ordre du jeu, dans le sens des aiguilles d'une montre.
-const SIEGES = { 1: [0], 2: [0, 2], 3: [0, 1, 2], 4: [0, 1, 2, 3], 5: [0, 4, 1, 2, 3], 6: [0, 4, 1, 2, 5, 3] };
+// Sièges : 0 bas-gauche, 6 et 4 côté gauche, 1 haut-gauche, 2 haut-droite, 5 et 7 côté droit, 3 bas-droite
+const SIEGES = { 1: [0], 2: [0, 2], 3: [0, 1, 2], 4: [0, 1, 2, 3], 5: [0, 4, 1, 2, 3], 6: [0, 4, 1, 2, 5, 3],
+  7: [0, 6, 4, 1, 2, 5, 3], 8: [0, 6, 4, 1, 2, 5, 7, 3] };
 function dessinerJoueurs(ancien) {
-  const hote = etat.hoteId === moi;
+  const hote = etat.hoteId === moiHumain;
   const n = etat.joueurs.length;
   const debut = Math.max(0, etat.joueurs.findIndex((p) => p.id === moi));
-  for (let k = 0; k < 6; k++) $('#siege-' + k).innerHTML = '';
+  for (let k = 0; k < 8; k++) $('#siege-' + k).innerHTML = '';
   etat.joueurs.forEach((_, rang) => {
     const p = etat.joueurs[(debut + rang) % n];
     const statut = p.faillite ? '💀 Faillite'
@@ -426,7 +440,7 @@ function dessinerJoueurs(ancien) {
       <div class="joueur ${etat.tour && etat.tour.joueurId === p.id ? 'actuel' : ''} ${p.faillite ? 'faillite' : ''}" style="--couleur:${p.couleur}" id="carte-${p.id}">
         <div class="avatar">${p.pion}</div>
         <div class="infos-j">
-          <div class="bandeau-nom">${esc(p.nom)}${p.id === etat.hoteId ? ' 👑' : ''}${p.id === moi ? ' (toi)' : ''}</div>
+          <div class="bandeau-nom">${esc(p.nom)}${p.id === etat.hoteId || (p.membres || []).some((x) => x.id === etat.hoteId) ? ' 👑' : ''}${p.id === moi ? ' (toi)' : ''}</div>
           <div class="somme">${argent(p.argent)}</div>
         </div>
       </div>
@@ -443,7 +457,7 @@ function dessinerJoueurs(ancien) {
     $('#carte-' + p.id).appendChild(f);
   }
 }
-for (let k = 0; k < 6; k++) $('#siege-' + k).onclick = (e) => {
+for (let k = 0; k < 8; k++) $('#siege-' + k).onclick = (e) => {
   const mp = e.target.closest('[data-case]');
   if (mp) return ouvrirPropriete(+mp.dataset.case);
   const ex = e.target.closest('[data-exclure]');
@@ -459,7 +473,7 @@ function dessinerCentre() {
   const dc = etat.dernierCoup;
   const qui = dc && joueur(dc.joueurId);
   $('#position').innerHTML = qui
-    ? `${qui.pion} <b>${esc(qui.nom)}</b> est sur <b>${esc(etat.plateau[dc.case].nom)}</b>${dc.info ? `<br><small>${esc(dc.info)}</small>` : ''}`
+    ? `${qui.pion} <b>${esc(qui.nom)}</b> ${accord(qui, 'est', 'sont')} sur <b>${esc(etat.plateau[dc.case].nom)}</b>${dc.info ? `<br><small>${esc(dc.info)}</small>` : ''}`
     : '';
   if (etat.phase === 'fin') {
     $('#joueur-actif').innerHTML = `🏆 ${nomJ(etat.gagnant)}`;
@@ -494,7 +508,7 @@ function dessinerCentre() {
   } else if (endettes.length) {
     texte = `⏳ ${endettes.map((p) => `<b>${esc(p.nom)}</b>`).join(', ')} doit trouver de l'argent…`;
   } else if (etat.messages.length) {
-    texte = `📖 lit sa carte…`;
+    texte = `📖 ${accord(courant, 'lit sa', 'lisent leur')} carte…`;
   } else if (etat.enchere) {
     texte = '🔨 Enchères en cours…';
   } else if (t.etape === 'acheter') {
@@ -503,12 +517,12 @@ function dessinerCentre() {
     bouton('vert principal', 'acheter', '✅ Acheter', courant.argent >= c.prix);
     bouton('gris', 'refuser', etat.encheres ? '🔨 Enchères' : '❌ Non merci');
   } else if (t.etape === 'lancer' && courant.enPrison) {
-    texte = `🚔 est au <b>${esc(etat.plateau[10].nom)}</b> (essai ${courant.toursPrison + 1}/3)`;
+    texte = `🚔 ${accord(courant, 'est', 'sont')} au <b>${esc(etat.plateau[10].nom)}</b> (essai ${courant.toursPrison + 1}/3)`;
     bouton('rose principal', 'lancer', '🎲 Tenter un double');
     bouton('jaune', 'payerPrison', `Sortir pour ${argent(etat.amende)}`, courant.argent >= etat.amende);
     if (courant.cartesLiberation) bouton('vert', 'carteLiberation', '🔑 Utiliser sa carte');
   } else if (t.etape === 'lancer') {
-    texte = t.doubles ? '🎉 Double ! <b>Rejoue</b> !' : 'lance les dés…';
+    texte = t.doubles ? `🎉 Double ! <b>${accord(courant, 'Rejoue', 'Rejouez')}</b> !` : accord(courant, 'lance les dés…', 'lancent les dés…');
     bouton('rose principal', 'lancer', '🎲 Lancer les dés');
     if (aMoi) bouton('gris', 'gerer', '🏠 Mes terrains');
   } else {
@@ -553,7 +567,7 @@ function dessinerMessage() {
   const peutFermer = m.joueurId === moi || !auteur || !auteur.connecte;
   const bouton = peutFermer
     ? `<button class="btn ${m.type === 'malchance' ? 'rouge' : 'rose'} gros" data-lu="${m.seq}">OK, j'ai lu 👍</button>`
-    : `<p class="attente">⏳ ${auteur.pion} ${esc(auteur.nom)} lit sa carte…</p>`;
+    : `<p class="attente">⏳ ${auteur.pion} ${esc(auteur.nom)} ${accord(auteur, 'lit sa', 'lisent leur')} carte…</p>`;
   if (m.type === 'malchance') {
     $('#malchance-texte').textContent = m.texte;
     $('#malchance-qui').textContent = `${auteur ? auteur.pion + ' ' : ''}${m.joueur}`;
@@ -562,7 +576,7 @@ function dessinerMessage() {
     $('#message-boite').className = 'message-boite ' + m.type;
     $('#message-titre').textContent = m.type === 'chance' ? '❓ CHANCE' : '🎉 BDE';
     $('#message-texte').textContent = m.texte;
-    $('#message-qui').textContent = `${auteur ? auteur.pion + ' ' : ''}${m.joueur} a pioché :`;
+    $('#message-qui').textContent = `${auteur ? auteur.pion + ' ' : ''}${m.joueur} ${accord(auteur, 'a', 'ont')} pioché :`;
     $('#message-bouton').innerHTML = bouton;
   }
   if (m.seq !== messageVu) {

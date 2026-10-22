@@ -67,7 +67,7 @@ function attacher(socket, partie, joueur) {
   socket.data.code = partie.code;
   socket.data.joueurId = joueur.id;
   socket.join(partie.code);
-  joueur.connecte = true;
+  partie.setConnecte(joueur.id, true);
   socket.emit('bienvenue', { code: partie.code, joueurId: joueur.id, jeton: joueur.jeton, nom: joueur.nom, chat: partie.chat });
   diffuser(partie);
 }
@@ -95,11 +95,12 @@ io.on('connection', (socket) => {
     try {
       const partie = parties.get(String(code || '').toUpperCase().trim());
       if (!partie) throw new Error("Cette partie n'existe pas (ou plus). Vérifie le code !");
-      let joueur = jeton && partie.joueurs.find((p) => p.jeton === jeton);
+      let joueur = jeton && partie.humains.find((p) => p.jeton === jeton);
       if (joueur) {
         partie.log(`🔌 ${joueur.nom} est de retour !`);
       } else {
-        if (jeton && !nom) throw new Error('Ta place dans cette partie a expiré.');
+        // Jeton inconnu : dans le salon, on réinscrit simplement le joueur avec son pseudo
+        if (jeton && (!nom || partie.phase !== 'salon')) throw new Error('Ta place dans cette partie a expiré.');
         joueur = partie.ajouterJoueur(nom, pion);
       }
       attacher(socket, partie, joueur);
@@ -132,22 +133,30 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const partie = parties.get(socket.data.code);
     if (!partie || !socket.data.joueurId) return;
-    const joueur = partie.j(socket.data.joueurId);
+    const joueur = partie.humain(socket.data.joueurId);
     if (!joueur) return;
-    joueur.connecte = false;
+    // Salon d'attente : le joueur disparaît tout de suite de la liste
+    if (partie.phase === 'salon') {
+      partie.retirerDuSalon(joueur.id);
+      if (!partie.humains.length) parties.delete(partie.code);
+      else diffuser(partie);
+      return;
+    }
+    partie.setConnecte(joueur.id, false);
     partie.log(`📴 ${joueur.nom} a perdu la connexion (retour possible avec le même lien).`);
     // Dans le salon, si l'hôte part, un autre joueur connecté devient hôte
     if (partie.phase === 'salon' && partie.hoteId === joueur.id) {
-      const autre = partie.joueurs.find((p) => p.connecte);
+      const autre = partie.humains.find((p) => p.connecte);
       if (autre) partie.hoteId = autre.id;
     }
     // Pendant le jeu aussi, l'hôte (qui peut exclure les absents) doit être présent
     if (partie.phase !== 'salon' && partie.hoteId === joueur.id) {
-      const autre = partie.joueurs.find((p) => p.connecte && !p.faillite);
+      const autre = partie.humains.find((h) => h.connecte && !partie.entite(h.id).faillite);
       if (autre) partie.hoteId = autre.id;
     }
     // Un joueur absent ne bloque pas une enchère
-    if (partie.enchere) partie.abandonEnchere(joueur);
+    const pion = partie.entite(joueur.id);
+    if (partie.enchere && pion && !pion.connecte) partie.abandonEnchere(pion);
     diffuser(partie);
   });
 });
@@ -156,7 +165,7 @@ io.on('connection', (socket) => {
 setInterval(() => {
   const limite = Date.now() - 6 * 3600 * 1000;
   for (const [code, p] of parties) {
-    const quelquUn = p.joueurs.some((j) => j.connecte);
+    const quelquUn = p.humains.some((j) => j.connecte);
     if (!quelquUn && p.derniereActivite < limite) {
       if (p.enchere) clearTimeout(p.enchere.timer);
       parties.delete(code);

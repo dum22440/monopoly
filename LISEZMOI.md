@@ -93,6 +93,7 @@ Render redémarre tout seul avec les nouveaux noms en 2 à 3 minutes.
 ---
 
 ## 🎮 Règles intégrées
+- **De 2 à 8 joueurs** chacun pour soi, ou **de 4 à 16 joueurs en équipes de 2** tirées au sort (le créateur de la partie coche la case dans le salon d'attente). En équipe, on partage le pion, l'argent et les terrains, et chaque coéquipier peut jouer depuis son téléphone.
 - **Un tour = on lance les dés, on achète (ou pas), et le tour passe tout seul au joueur suivant.**
 - Pour construire, ouvre **🏠 Mes terrains** au début de ton tour, avant de lancer les dés : **une seule construction par tour**, et il faut posséder toute la couleur.
 - Prix et loyers du vrai Monopoly (loyers doublés quand on a toute la couleur). Option loyers plus doux dans `personnalisation.js` (`coefficientsLoyers`).

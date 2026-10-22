@@ -40,17 +40,27 @@ function essayer(g, id, a) {
   verifier(g);
 }
 
-function partie(nbJoueurs, encheres) {
+let partiesEquipes = 0;
+function partie(nbJoueurs, encheres, equipes) {
   const g = new Partie('TEST', { ...config, encheres }, () => {});
   const ids = [];
-  for (let k = 0; k < nbJoueurs; k++) ids.push(g.ajouterJoueur('Robot' + k).id);
+  if (equipes) g.action(g.ajouterJoueur('Robot0').id, { type: 'equipes', actif: true });
+  for (let k = equipes ? 1 : 0; k < nbJoueurs; k++) ids.push(g.ajouterJoueur('Robot' + k).id);
+  if (equipes) ids.unshift(g.hoteId);
   g.action(ids[0], { type: 'demarrer' });
+  if (equipes) {
+    partiesEquipes++;
+    const tailles = g.joueurs.map((e) => e.membres.length);
+    if (g.joueurs.length !== Math.floor(nbJoueurs / 2) || tailles.some((t) => t < 2 || t > 3)) throw new Error('équipes mal formées : ' + tailles);
+  }
+  // En équipe, c'est un membre au hasard qui clique pour son équipe
+  const qui = (p) => (p.membres ? pick(p.membres) : p.id);
   for (let pas = 0; pas < 4000 && g.phase === 'jeu'; pas++) {
     // Une carte est affichée : le joueur clique sur OK (parfois un autre essaie avant lui)
     if (g.messages.length) {
       const m = g.messages[0];
       if (Math.random() < 0.2) essayer(g, pick(ids), { type: 'lancer' }); // doit être refusé
-      essayer(g, m.joueurId, { type: 'lu', seq: m.seq });
+      essayer(g, qui(g.j(m.joueurId)), { type: 'lu', seq: m.seq });
       continue;
     }
     // Les enchères se terminent sans attendre le chrono dans le test
@@ -65,26 +75,26 @@ function partie(nbJoueurs, encheres) {
     const endette = g.joueurs.find((p) => p.dette);
     if (endette) {
       const mes = Object.keys(g.proprietes).filter((i) => g.proprietes[i].proprio === endette.id);
-      if (endette.argent >= endette.dette.montant) essayer(g, endette.id, { type: 'payerDette' });
-      else if (g.valeurLiquidable(endette) < endette.dette.montant || Math.random() < 0.05) essayer(g, endette.id, { type: 'faillite' });
-      else essayer(g, endette.id, { type: pick(['vendreMaison', 'hypothequer']), case: pick(mes) });
+      if (endette.argent >= endette.dette.montant) essayer(g, qui(endette), { type: 'payerDette' });
+      else if (g.valeurLiquidable(endette) < endette.dette.montant || Math.random() < 0.05) essayer(g, qui(endette), { type: 'faillite' });
+      else essayer(g, qui(endette), { type: pick(['vendreMaison', 'hypothequer']), case: pick(mes) });
       continue;
     }
     const p = g.courant();
     const mes = Object.keys(g.proprietes).filter((i) => g.proprietes[i].proprio === p.id);
     const r = Math.random();
-    if (r < 0.25 && mes.length) essayer(g, p.id, { type: pick(['construire', 'construire', 'hypothequer', 'leverHypotheque', 'vendreMaison']), case: pick(mes) });
+    if (r < 0.25 && mes.length) essayer(g, qui(p), { type: pick(['construire', 'construire', 'hypothequer', 'leverHypotheque', 'vendreMaison']), case: pick(mes) });
     else if (r < 0.3) {
       const autre = pick(g.actifs().filter((x) => x.id !== p.id));
       const siens = Object.keys(g.proprietes).filter((i) => g.proprietes[i].proprio === autre.id);
-      essayer(g, p.id, { type: 'proposerEchange', vers: autre.id,
+      essayer(g, qui(p), { type: 'proposerEchange', vers: autre.id,
         donne: { proprietes: mes.length ? [pick(mes)] : [], argent: hasard(100) },
         recoit: { proprietes: siens.length ? [pick(siens)] : [], argent: hasard(50) } });
-      for (const e of [...g.echanges]) essayer(g, e.vers, { type: 'repondreEchange', echangeId: e.id, accepte: Math.random() < 0.5 });
-    } else if (r < 0.33 && p.enPrison) essayer(g, p.id, { type: pick(['payerPrison', 'carteLiberation']) });
-    else if (g.tour.etape === 'acheter') essayer(g, p.id, { type: Math.random() < 0.7 ? 'acheter' : 'refuser' });
-    else if (g.tour.etape === 'lancer') essayer(g, p.id, { type: 'lancer' });
-    else essayer(g, p.id, { type: 'finTour' });
+      for (const e of [...g.echanges]) essayer(g, qui(g.j(e.vers)), { type: 'repondreEchange', echangeId: e.id, accepte: Math.random() < 0.5 });
+    } else if (r < 0.33 && p.enPrison) essayer(g, qui(p), { type: pick(['payerPrison', 'carteLiberation']) });
+    else if (g.tour.etape === 'acheter') essayer(g, qui(p), { type: Math.random() < 0.7 ? 'acheter' : 'refuser' });
+    else if (g.tour.etape === 'lancer') essayer(g, qui(p), { type: 'lancer' });
+    else essayer(g, qui(p), { type: 'finTour' });
   }
   if (g.enchere) clearTimeout(g.enchere.timer);
   if (g.phase === 'fin') finies++;
@@ -92,7 +102,10 @@ function partie(nbJoueurs, encheres) {
 }
 
 const N = +process.env.N || 150;
-for (let k = 0; k < N; k++) partie(2 + (k % 5), k % 2 === 0);
-console.log(`✅ ${N} parties jouées par des robots, ${finies} terminées par une victoire, ${malchances} malchances déclenchées.`);
+for (let k = 0; k < N; k++) {
+  if (k % 3 === 2) partie(4 + (k % 13), k % 2 === 0, true); // équipes : 4 à 16 joueurs
+  else partie(2 + (k % 7), k % 2 === 0, false);
+}
+console.log(`✅ ${N} parties jouées par des robots (dont ${partiesEquipes} en équipes), ${finies} terminées par une victoire, ${malchances} malchances déclenchées.`);
 console.log(`   ${actionsOk} actions acceptées, ${refus} actions interdites correctement refusées. Aucune règle violée.`);
 process.exit(0);
