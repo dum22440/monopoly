@@ -171,6 +171,12 @@ h1 {
 .case.chance-case { background: linear-gradient(160deg, #fff, #ffe7f5); }
 .case.caisse-case { background: linear-gradient(160deg, #fff, #e3f6ff); }
 .case.surbrillance { animation: clignote .8s ease-in-out 3; }
+/* Case où le joueur vient d'arriver : grosse lueur pulsante dans sa couleur */
+.case.ici { z-index: 2; overflow: visible; animation: scintille 1.1s ease-in-out infinite; }
+.case.ici::before {
+  content: ''; position: absolute; inset: -3px; border-radius: 5px; pointer-events: none;
+  border: 3px solid var(--couleur-ici); background: color-mix(in srgb, var(--couleur-ici) 22%, transparent);
+}
 
 /* Centre du plateau (décor) */
 .centre {
@@ -451,6 +457,10 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
 @keyframes bulle { 0% { opacity: 0; transform: translateY(10px); } 6%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); } }
 @keyframes monte { from { opacity: 0; transform: translate(-50%, 12px); } }
 @keyframes flotte { 0%, 100% { transform: translate(-50%, -60%); } 50% { transform: translate(-50%, -85%); } }
+@keyframes scintille {
+  0%, 100% { transform: scale(1.04); box-shadow: 0 0 10px 3px var(--couleur-ici); filter: brightness(1); }
+  50% { transform: scale(1.14); box-shadow: 0 0 0 3px #fff, 0 0 30px 12px var(--couleur-ici); filter: brightness(1.15); }
+}
 @keyframes clignote { 50% { box-shadow: inset 0 0 0 4px var(--jaune), 0 0 16px var(--jaune); } }
 @keyframes flottant { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-34px); } }
 @keyframes fondu { from { opacity: 0; } }

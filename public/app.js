@@ -281,6 +281,18 @@ function dessinerCases() {
   }
 }
 
+// La case où le dernier joueur vient d'arriver brille dans sa couleur
+// (pour tout le monde) jusqu'à son prochain déplacement.
+function surlignerArrivee() {
+  for (const c of $$('.case.ici')) c.classList.remove('ici');
+  const dc = etat.dernierCoup;
+  const qui = dc && joueur(dc.joueurId);
+  if (!qui || etat.phase !== 'jeu') return;
+  const el = $('#case-' + dc.case);
+  el.style.setProperty('--couleur-ici', qui.couleur);
+  el.classList.add('ici');
+}
+
 // ---------------------------------------------------------------------
 //  DÉS
 // ---------------------------------------------------------------------
@@ -383,6 +395,7 @@ async function deplacerPions(s) {
 // ---------------------------------------------------------------------
 function dessinerTout(ancien) {
   dessinerCases();
+  surlignerArrivee();
   placerPions();
   dessinerJoueurs(ancien);
   dessinerCentre();
