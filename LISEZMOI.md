@@ -4,7 +4,7 @@
 
 | Fichier | À quoi il sert | Tu dois y toucher ? |
 |---|---|---|
-| `personnalisation.js` | Noms des cases (19 propriétés), gares, cartes Chance / Caisse… | ✅ **OUI, c'est ton fichier** |
+| `personnalisation.js` | Noms des cases (19 propriétés), gares, cartes Chance / BDE… | ✅ **OUI, c'est ton fichier** |
 | `server.js` | Le serveur (connexions, parties, chat) | ❌ non |
 | `game.js` | Toutes les règles du Monopoly | ❌ non |
 | `public/` | La page web (affichage, animations) | ❌ non |

@@ -26,7 +26,7 @@ function verifier(g) {
     if (p.position < 0 || p.position > 39) throw new Error('position invalide');
   }
   if (g.phase === 'jeu' && g.courant().faillite) throw new Error('le joueur courant est en faillite');
-  if (g.phase === 'jeu' && g.tour.etape === 'fin' && !g.enchere && !g.joueurs.some((p) => p.dette))
+  if (g.phase === 'jeu' && g.tour.etape === 'fin' && !g.enchere && !g.messages.length && !g.joueurs.some((p) => p.dette))
     throw new Error("le tour aurait dû passer automatiquement");
   const cm = g.casesMalchance;
   if (cm.length !== config.malchance.nombreDeCases || new Set(cm).size !== cm.length || cm.some((i) => [0, 10, 30].includes(i)))
@@ -46,6 +46,13 @@ function partie(nbJoueurs, encheres) {
   for (let k = 0; k < nbJoueurs; k++) ids.push(g.ajouterJoueur('Robot' + k).id);
   g.action(ids[0], { type: 'demarrer' });
   for (let pas = 0; pas < 4000 && g.phase === 'jeu'; pas++) {
+    // Une carte est affichée : le joueur clique sur OK (parfois un autre essaie avant lui)
+    if (g.messages.length) {
+      const m = g.messages[0];
+      if (Math.random() < 0.2) essayer(g, pick(ids), { type: 'lancer' }); // doit être refusé
+      essayer(g, m.joueurId, { type: 'lu', seq: m.seq });
+      continue;
+    }
     // Les enchères se terminent sans attendre le chrono dans le test
     if (g.enchere) {
       const qui = pick(g.enchere.actifs);

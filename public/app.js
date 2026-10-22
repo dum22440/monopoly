@@ -5,7 +5,7 @@
 // =====================================================================
 
 const PIONS = ['🏎️', '🏍️', '🐆', '🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
-const ICONES = { depart: '🏁', prison: '🚔', parc: '☕', allerPrison: '👮', chance: '❓', caisse: '📦',
+const ICONES = { depart: '🏁', prison: '🚔', parc: '☕', allerPrison: '👮', chance: '❓', caisse: '🎉',
   gare: '🚉', compagnie: '💡', impot: '💸', taxe: '💎' };
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -20,8 +20,8 @@ let plateauConstruit = false;
 let positionsAffichees = {}; // où les pions sont dessinés en ce moment
 let fileEtats = Promise.resolve();
 let animationEnCours = false;
-let malchanceVue = null;
-let desSeqVu = 0, carteSeqVue = null, echangesVus = new Set(), modaleOuverte = null;
+let messageVu = 0;
+let desSeqVu = 0, echangesVus = new Set(), modaleOuverte = null;
 
 // ---------------------------------------------------------------------
 //  Mémoire des parties (pour pouvoir revenir après une déconnexion)
@@ -169,7 +169,6 @@ async function traiterEtat(s) {
   if (!plateauConstruit) construirePlateau();
 
   if (!ancien || ancien.phase === 'salon') {
-    malchanceVue = s.derniereMalchance && s.derniereMalchance.seq; // pas de ré-affichage en arrivant
     for (const p of s.joueurs) positionsAffichees[p.id] = p.position;
     desSeqVu = s.desSeq;
     if (s.tour && s.tour.des) dessinerDe($('#de1'), s.tour.des[0]), dessinerDe($('#de2'), s.tour.des[1]);
@@ -179,7 +178,6 @@ async function traiterEtat(s) {
     desSeqVu = s.desSeq;
     animationEnCours = true;
     $('#actions').innerHTML = '';
-    $('#carte-tiree').classList.add('hidden');
     await lancerDesAnimation(s.tour.des);
   }
   // 2) Déplacement des pions
@@ -387,8 +385,7 @@ function dessinerTout(ancien) {
   dessinerJournal();
   dessinerEchanges();
   dessinerEnchere();
-  dessinerCarte();
-  dessinerMalchance();
+  dessinerMessage();
   if (modaleOuverte) modaleOuverte();
   if (etat.phase === 'fin' && (!ancien || ancien.phase !== 'fin')) victoire();
 }
@@ -468,12 +465,16 @@ function dessinerCentre() {
     boutons.push('<button class="btn rouge" data-a="faillite">💀 Faillite</button>');
   } else if (endettes.length) {
     texte = `⏳ ${endettes.map((p) => `<b>${esc(p.nom)}</b>`).join(', ')} doit trouver de l'argent…`;
+  } else if (etat.messages.length) {
+    texte = `📖 ${esc(etat.messages[0].joueur)} lit sa carte…`;
   } else if (etat.enchere) {
     texte = '🔨 Enchères en cours…';
+  } else if (t.etape === 'acheter' && t.joueurId !== moi) {
+    texte = `${courant.pion} <b>${esc(courant.nom)}</b> hésite à acheter…`;
   } else if (t.joueurId === moi) {
     if (t.etape === 'acheter') {
       const c = etat.plateau[t.achat];
-      texte = `Acheter <b>${esc(c.nom)}</b> pour <b>${argent(c.prix)}</b> ?`;
+      texte = `Tu achètes ?`;
       boutons.push(`<button class="btn vert principal" data-a="acheter" ${m.argent < c.prix ? 'disabled' : ''}>✅ Acheter</button>`);
       boutons.push(`<button class="btn gris" data-a="refuser">${etat.encheres ? '🔨 Enchères' : '❌ Non merci'}</button>`);
     } else if (t.etape === 'lancer' && m.enPrison) {
@@ -493,6 +494,15 @@ function dessinerCentre() {
   }
   info.innerHTML = texte;
   act.innerHTML = boutons.join('');
+  // Grande fiche de la case à vendre : couleur, nom et prix en gros, pour tout le monde
+  const achat = t.etape === 'acheter' && !etat.messages.length && etat.plateau[t.achat];
+  $('#fiche').classList.toggle('hidden', !achat);
+  $('#position').classList.toggle('hidden', !!achat);
+  if (achat) {
+    const fond = achat.couleur || (achat.type === 'gare' ? '#c9c2e0' : '#ffe9a8');
+    $('#fiche').innerHTML = `<div class="fiche-bande" style="background:${fond}">${ICONES[achat.type] || ''} ${esc(achat.nom)}</div>
+      <div class="fiche-prix">${argent(achat.prix)}</div>`;
+  }
 }
 $('#actions').onclick = (e) => {
   const b = e.target.closest('button[data-a]');
@@ -509,33 +519,38 @@ function dessinerJournal() {
   $('#journal').innerHTML = etat.journal.slice().reverse().map((l) => `<li>${esc(l.txt)}</li>`).join('');
 }
 
-// Carte Chance / Caisse de communauté
-function dessinerCarte() {
-  const c = etat.derniereCarte;
-  const el = $('#carte-tiree');
-  if (!c || c.seq === carteSeqVue) return;
-  carteSeqVue = c.seq;
-  el.className = 'carte-tiree ' + c.paquet;
-  el.innerHTML = `<h3>${c.paquet === 'chance' ? '❓ Chance' : '📦 Caisse de communauté'}</h3><p>${esc(c.texte)}</p><small>${esc(c.joueur)} · touche pour fermer</small>`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.add('hidden'), 8000);
+// Carte Chance / BDE / MALCHANCE : reste affichée chez tout le monde
+// jusqu'à ce que le joueur concerné clique sur OK (le jeu attend).
+function dessinerMessage() {
+  const m = etat.phase === 'jeu' && etat.messages[0];
+  $('#message').classList.toggle('hidden', !m || m.type === 'malchance');
+  $('#malchance').classList.toggle('hidden', !m || m.type !== 'malchance');
+  if (!m) return;
+  const auteur = joueur(m.joueurId);
+  const peutFermer = m.joueurId === moi || !auteur || !auteur.connecte;
+  const bouton = peutFermer
+    ? `<button class="btn ${m.type === 'malchance' ? 'rouge' : 'rose'} gros" data-lu="${m.seq}">OK, j'ai lu 👍</button>`
+    : `<p class="attente">⏳ ${auteur.pion} ${esc(auteur.nom)} lit sa carte…</p>`;
+  if (m.type === 'malchance') {
+    $('#malchance-texte').textContent = m.texte;
+    $('#malchance-qui').textContent = `${auteur ? auteur.pion + ' ' : ''}${m.joueur}`;
+    $('#malchance-bouton').innerHTML = bouton;
+  } else {
+    $('#message-boite').className = 'message-boite ' + m.type;
+    $('#message-titre').textContent = m.type === 'chance' ? '❓ CHANCE' : '🎉 BDE';
+    $('#message-texte').textContent = m.texte;
+    $('#message-qui').textContent = `${auteur ? auteur.pion + ' ' : ''}${m.joueur} a pioché :`;
+    $('#message-bouton').innerHTML = bouton;
+  }
+  if (m.seq !== messageVu) {
+    messageVu = m.seq;
+    if (m.type === 'malchance' && navigator.vibrate) navigator.vibrate([120, 60, 120]);
+  }
 }
-$('#carte-tiree').onclick = () => $('#carte-tiree').classList.add('hidden');
-
-// Gros écran rouge quand quelqu'un tombe sur une case MALCHANCE cachée
-function dessinerMalchance() {
-  const m = etat.derniereMalchance;
-  if (!m || m.seq === malchanceVue) return;
-  malchanceVue = m.seq;
-  $('#malchance-texte').textContent = m.texte;
-  $('#malchance-qui').textContent = `${m.joueur} · touche pour fermer`;
-  const el = $('#malchance');
-  el.classList.remove('hidden');
-  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.add('hidden'), 7000);
-}
-$('#malchance').onclick = () => $('#malchance').classList.add('hidden');
+for (const id of ['#message', '#malchance']) $(id).onclick = (e) => {
+  const b = e.target.closest('[data-lu]');
+  if (b) { b.disabled = true; envoyer('lu', { seq: +b.dataset.lu }); }
+};
 
 // ---------------------------------------------------------------------
 //  FENÊTRES : propriété, gestion, échanges
@@ -563,7 +578,7 @@ function htmlPropriete(i, avecTitre = true) {
       prison: 'Simple visite… sauf si tu y es envoyé !',
       parc: etat.cagnotte !== null ? `Cagnotte actuelle : ${argent(etat.cagnotte)}` : 'Rien ne se passe, profites-en pour souffler.',
       allerPrison: `Direction ${esc(etat.plateau[10].nom)}, sans passer par la case Départ !`,
-      chance: 'Pioche une carte Chance.', caisse: 'Pioche une carte Caisse de communauté.',
+      chance: 'Pioche une carte Chance.', caisse: 'Pioche une carte BDE.',
       impot: `Paie ${argent(c.montant)}.`, taxe: `Paie ${argent(c.montant)}.`,
     };
     return h + `<p style="text-align:center">${desc[c.type] || ''}</p>`;

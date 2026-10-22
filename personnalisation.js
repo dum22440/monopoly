@@ -160,13 +160,9 @@ module.exports = {
   //     { texte: "...", effet: "argent", montant: -50 },
   //
   //  🚶 Aller sur une case précise (on touche le salaire si on passe par Départ) :
-  //     { texte: "...", effet: "aller", case: 39 },
-  //     → Numéros des cases : 0 = Départ, puis on compte dans le sens du jeu.
-  //       2 et 3 = marron · 5 = 1re gare · 6, 7, 9 = bleu clair · 10 = prison (simple visite)
-  //       11, 14, 18 = rose · 13 = 1re compagnie · 15 = 2e gare
-  //       20 = parc gratuit · 21, 23, 24 = rouge · 25 = 3e gare · 26, 28, 29 = jaune
-  //       31, 33, 34 = vert · 35 = 4e gare · 36 = 2e compagnie · 38, 39 = bleu foncé
-  //       Chance : 4, 12, 22, 32 · Caisse de communauté : 1, 8, 17, 27, 37
+  //     { texte: "...", effet: "aller", case: "Alice" },
+  //     → Écris simplement le NOM de la case, exactement comme sur le plateau
+  //       (ex : "Louis", "BU", "Départ", "Cours de Valéria").
   //
   //  ⏩ Avancer / ⏪ Reculer de quelques cases :
   //     { texte: "...", effet: "avancer", cases: 2 },
@@ -198,7 +194,7 @@ module.exports = {
   //  CARTES CHANCE ❓
   // ---------------------------------------------------------------
   chance: [
-    { texte: "Tu t'es réveillé chez quelqu'un dont tu ne connais même pas le prénom. Walk of shame jusqu'à la case Départ.", effet: "aller", case: 0 },
+    { texte: "Tu t'es réveillé chez quelqu'un dont tu ne connais même pas le prénom. Walk of shame jusqu'à la case Départ.", effet: "aller", case: "Départ" },
     { texte: "Soirée d'inté : tu as fini en caleçon sur une table du Cube. Direction le cours de Valéria !", effet: "prison" },
     { texte: "Ton date Tinder était en fait ton chargé de TD. Recule de 3 cases, vite.", effet: "reculer", cases: 3 },
     { texte: "Tu as vendu des photos de tes pieds sur Internet. Ça marche étonnamment bien : reçois 150 €.", effet: "argent", montant: 150 },
@@ -210,18 +206,18 @@ module.exports = {
     { texte: "Ton crush t'a enfin répondu « 😏 ». Porté par l'espoir, tu avances de 2 cases.", effet: "avancer", cases: 2 },
     { texte: "Tu as envoyé par erreur une photo très perso dans le groupe de la promo. Plus personne n'ose te regarder : carte « Libéré du cours de Valéria ».", effet: "liberation" },
     { texte: "Panne de capotes à la pharmacie : taxi jusqu'à celle de garde, paie 20 €.", effet: "argent", montant: -20 },
-    { texte: "Louis t'invite à boire un verre. Va directement chez Louis.", effet: "aller", case: 39 },
-    { texte: "Projet de groupe chez Alice (il paraît qu'il y aura surtout de l'apéro). Rends-toi chez Alice.", effet: "aller", case: 26 },
+    { texte: "Louis t'invite à boire un verre. Va directement chez Louis.", effet: "aller", case: "Louis" },
+    { texte: "Projet de groupe chez Alice (il paraît qu'il y aura surtout de l'apéro). Rends-toi chez Alice.", effet: "aller", case: "Alice" },
 
     // --- Vannes sur la promo ---
     { texte: "Louis s'est enfin coupé 2 cm de ses cheveux longs. Il en a assez pour une perruque, qu'il revend : tu touches ta part, reçois 100 €.", effet: "argent", montant: 100 },
     { texte: "Ewen a encore explosé sa limite sur Claude en pleine nuit de code. « Faut payer l'abonnement, frère » : perds 50 €.", effet: "argent", montant: -50 },
     { texte: "Dario t'a proposé « un petit footing tranquille » de 25 km. Tu avances de 3 cases en rampant.", effet: "avancer", cases: 3 },
-    { texte: "Agathe t'a vu(e) parler à Théo. Crise de jalousie : va directement chez Agathe t'expliquer.", effet: "aller", case: 21 },
+    { texte: "Agathe t'a vu(e) parler à Théo. Crise de jalousie : va directement chez Agathe t'expliquer.", effet: "aller", case: "Agathe" },
     { texte: "Fanny a raté sa teinture : blond… orange fluo. Tu as trop rigolé, paie 20 € de shampooing déjaunissant.", effet: "argent", montant: -20 },
     { texte: "Gwen a lancé un tunnel de 40 minutes sur absolument rien. Tu t'es endormi(e) debout : recule de 3 cases.", effet: "reculer", cases: 3 },
     { texte: "Hang a enfin trouvé un vol pas cher pour le Vietnam. Elle te paie 50 € pour arroser ses plantes.", effet: "argent", montant: 50 },
-    { texte: "Alice t'a demandé le snap de Louis pour la 15e fois. Va chez Louis lui transmettre le message.", effet: "aller", case: 39 },
+    { texte: "Alice t'a demandé le snap de Louis pour la 15e fois. Va chez Louis lui transmettre le message.", effet: "aller", case: "Louis" },
     { texte: "Manon te parle de F1 depuis 2 heures. Tu t'enfuis à la gare la plus proche à la vitesse de Verstappen.", effet: "gareProche" },
     { texte: "Justine t'a raconté la dernière mission de son mari militaire, minute par minute. Garde-à-vous : direction le cours de Valéria !", effet: "prison" },
     { texte: "Gildas est nouveau, personne ne lui a expliqué qu'on ne paie pas sa tournée le premier jour. Reçois 30 €.", effet: "argent", montant: 30 },
@@ -230,16 +226,16 @@ module.exports = {
   ],
 
   // ---------------------------------------------------------------
-  //  CARTES CAISSE DE COMMUNAUTÉ 📦
+  //  CARTES BDE 🎉
   // ---------------------------------------------------------------
-  caisse: [
+  bde: [
     { texte: "Tu as gagné le concours de t-shirt mouillé de la soirée BDE. Reçois 100 €.", effet: "argent", montant: 100 },
     { texte: "C'est ton anniversaire ! Chaque joueur t'offre 10 € (et un gage).", effet: "chaqueJoueur", montant: 10 },
     { texte: "Tu as perdu ta carte étudiante… et ton caleçon, au même endroit. Paie 50 €.", effet: "argent", montant: -50 },
     { texte: "Ton plan d'un soir t'a remboursé le kebab de 4h du mat'. Reçois 20 €.", effet: "argent", montant: 20 },
     { texte: "Tu as raconté les secrets de chambre de toute la promo. Paie 20 € à chaque joueur pour acheter leur silence.", effet: "chaqueJoueur", montant: -20 },
     { texte: "Surpris en train de te bécoter dans les toilettes de la BU. Direction le cours de Valéria !", effet: "prison" },
-    { texte: "Retour de soirée à 6h du mat' : tu retombes pile sur la case Départ.", effet: "aller", case: 0 },
+    { texte: "Retour de soirée à 6h du mat' : tu retombes pile sur la case Départ.", effet: "aller", case: "Départ" },
     { texte: "Soirée « tenue légère exigée » : paie 100 € de déguisement (pour trois bouts de tissu).", effet: "argent", montant: -100 },
     { texte: "Tu retrouves 50 € et un string qui n'est pas à toi dans ta poche. Tu gardes les deux.", effet: "argent", montant: 50 },
     { texte: "Ton suçon est trop visible pour aller en cours. Mot d'excuse : carte « Libéré du cours de Valéria ».", effet: "liberation" },
@@ -252,10 +248,10 @@ module.exports = {
     { texte: "Eva a une tête de zombie : la promo se cotise pour lui offrir une vraie nuit de sommeil. Chaque joueur te donne 10 € pour la cagnotte.", effet: "chaqueJoueur", montant: 10 },
     { texte: "Clément te propose un tour de quad. Tu refuses poliment : 50 € de frais d'hôpital économisés !", effet: "argent", montant: 50 },
     { texte: "Soirée surprise à la coloc de Tom, Lucas et Malo. Le voisin a appelé le proprio : 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
-    { texte: "Malo, pharaon autoproclamé de la coloc, t'accorde une audience. Va chez Malo.", effet: "aller", case: 34 },
+    { texte: "Malo, pharaon autoproclamé de la coloc, t'accorde une audience. Va chez Malo.", effet: "aller", case: "Malo" },
     { texte: "Lucas a vendu un tracteur à Louis et tu as servi d'intermédiaire. Ta commission : reçois 100 €.", effet: "argent", montant: 100 },
     { texte: "L'entreprise d'Amandine a encore rendez-vous au tribunal. Par solidarité, tu paies 50 € d'avocat.", effet: "argent", montant: -50 },
-    { texte: "Dario est arrivé à la fac en courant, avant le tram. Va chez Dario lui offrir une boisson isotonique.", effet: "aller", case: 29 },
+    { texte: "Dario est arrivé à la fac en courant, avant le tram. Va chez Dario lui offrir une boisson isotonique.", effet: "aller", case: "Dario" },
     { texte: "Théo t'a demandé de l'aider à justifier un like à Agathe. Tu préfères te cacher : direction le cours de Valéria !", effet: "prison" },
     { texte: "Tu as survécu à un tunnel de Gwen de 45 minutes sans décrocher. Pour ton courage : carte « Libéré du cours de Valéria ».", effet: "liberation" },
     { texte: "Louis a vendu sa récolte de blé et il régale tout le monde. Reçois 50 €.", effet: "argent", montant: 50 },

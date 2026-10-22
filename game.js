@@ -21,46 +21,47 @@ const GROUPES = {
 };
 
 // [type, groupe/infos, prix, loyers (terrain nu, 1, 2, 3, 4 maisons, hôtel)]
+// Une ville entre chaque case spéciale : 5 villes par côté (4 sur le côté du haut).
 const PLAN = [
   ['depart'],
-  ['caisse'],
   ['prop', 'marron', 60, [2, 10, 30, 90, 160, 250]],
+  ['caisse'],
   ['prop', 'marron', 60, [4, 20, 60, 180, 320, 450]],
-  ['chance'],
   ['gare'],
   ['prop', 'bleuClair', 100, [6, 30, 90, 270, 400, 550]],
+  ['chance'],
   ['prop', 'bleuClair', 100, [6, 30, 90, 270, 400, 550]],
-  ['caisse'],
+  ['impot'],
   ['prop', 'bleuClair', 120, [8, 40, 100, 300, 450, 600]],
   ['prison'],
   ['prop', 'rose', 140, [10, 50, 150, 450, 625, 750]],
-  ['chance'],
   ['compagnie'],
   ['prop', 'rose', 140, [10, 50, 150, 450, 625, 750]],
   ['gare'],
-  ['impot'],
-  ['caisse'],
   ['prop', 'rose', 160, [12, 60, 180, 500, 700, 900]],
-  ['taxe'],
-  ['parc'],
+  ['caisse'],
   ['prop', 'rouge', 220, [18, 90, 250, 700, 875, 1050]],
   ['chance'],
   ['prop', 'rouge', 220, [18, 90, 250, 700, 875, 1050]],
+  ['parc'],
+  ['caisse'],
   ['prop', 'rouge', 240, [20, 100, 300, 750, 925, 1100]],
+  ['chance'],
+  ['prop', 'jaune', 260, [22, 110, 330, 800, 975, 1150]],
   ['gare'],
   ['prop', 'jaune', 260, [22, 110, 330, 800, 975, 1150]],
-  ['caisse'],
-  ['prop', 'jaune', 260, [22, 110, 330, 800, 975, 1150]],
+  ['taxe'],
   ['prop', 'jaune', 280, [24, 120, 360, 850, 1025, 1200]],
+  ['caisse'],
   ['allerPrison'],
   ['prop', 'vert', 300, [26, 130, 390, 900, 1100, 1275]],
   ['chance'],
   ['prop', 'vert', 300, [26, 130, 390, 900, 1100, 1275]],
-  ['prop', 'vert', 320, [28, 150, 450, 1000, 1200, 1400]],
   ['gare'],
+  ['prop', 'vert', 320, [28, 150, 450, 1000, 1200, 1400]],
   ['compagnie'],
-  ['caisse'],
   ['prop', 'bleuFonce', 350, [35, 175, 500, 1100, 1300, 1500]],
+  ['caisse'],
   ['prop', 'bleuFonce', 400, [50, 200, 600, 1400, 1700, 2000]],
 ];
 
@@ -99,7 +100,7 @@ function construirePlateau(cfg) {
       case 'impot': Object.assign(c, { nom: cs.impot.nom, montant: cs.impot.montant }); break;
       case 'taxe': Object.assign(c, { nom: cs.taxe.nom, montant: cs.taxe.montant }); break;
       case 'chance': c.nom = 'Chance'; break;
-      case 'caisse': c.nom = 'Caisse de communauté'; break;
+      case 'caisse': c.nom = 'BDE'; break;
     }
     return c;
   });
@@ -132,7 +133,7 @@ function verifierConfig(cfg) {
   for (const k of ['impot', 'taxe']) if (!cs[k] || typeof cs[k].nom !== 'string' || typeof cs[k].montant !== 'number') err.push(`"${k}" dans "casesSpeciales" doit avoir un nom et un montant.`);
   for (const k of ['argentDeDepart', 'salaireCaseDepart']) if (typeof cfg[k] !== 'number') err.push(`"${k}" doit être un nombre.`);
   const effets = {
-    argent: ['montant'], aller: ['case'], avancer: ['cases'], reculer: ['cases'], prison: [], liberation: [],
+    argent: ['montant'], aller: [], avancer: ['cases'], reculer: ['cases'], prison: [], liberation: [],
     chaqueJoueur: ['montant'], reparations: ['parMaison', 'parHotel'], gareProche: [], compagnieProche: [],
   };
   if (cfg.malchance) {
@@ -142,18 +143,34 @@ function verifierConfig(cfg) {
     for (const k of ['donnerUnBien', 'vendreUnBien', 'donnerArgent', 'perdreArgent'])
       if (!Array.isArray(m[k]) || !m[k].length || m[k].some((t) => typeof t !== 'string')) err.push(`"malchance" : il faut au moins une blague (entre guillemets) dans "${k}".`);
   }
-  for (const paquet of ['chance', 'caisse']) {
-    const l = cfg[paquet];
+  const allerNoms = [];
+  for (const paquet of ['chance', 'bde']) {
+    const l = paquet === 'bde' ? (cfg.bde || cfg.caisse) : cfg[paquet];
     if (!Array.isArray(l) || l.length === 0) { err.push(`Le paquet "${paquet}" doit contenir au moins une carte.`); continue; }
     l.forEach((c, n) => {
       const ou = `Carte n°${n + 1} du paquet "${paquet}"`;
       if (!c || typeof c.texte !== 'string') return err.push(`${ou} : il manque le "texte".`);
       if (!effets[c.effet]) return err.push(`${ou} : l'effet "${c.effet}" n'existe pas. Effets possibles : ${Object.keys(effets).join(', ')}.`);
       for (const champ of effets[c.effet]) if (typeof c[champ] !== 'number') err.push(`${ou} : il faut un nombre pour "${champ}".`);
-      if (c.effet === 'aller' && (c.case < 0 || c.case > 39)) err.push(`${ou} : "case" doit être entre 0 et 39.`);
+      if (c.effet === 'aller') {
+        if (typeof c.case === 'string') allerNoms.push([ou, c.case]);
+        else if (typeof c.case !== 'number' || c.case < 0 || c.case > 39) err.push(`${ou} : "case" doit être un nom de case (ex : "Alice") ou un numéro entre 0 et 39.`);
+      }
     });
   }
+  if (!err.length) {
+    const plateau = construirePlateau(cfg);
+    for (const [ou, nom] of allerNoms)
+      if (trouverCase(plateau, nom) < 0) err.push(`${ou} : la case "${nom}" n'existe pas sur le plateau.`);
+  }
   return err;
+}
+
+// Retrouve une case par son numéro ou par son nom (sans tenir compte des majuscules)
+function trouverCase(plateau, cible) {
+  if (typeof cible === 'number') return cible;
+  const n = String(cible).trim().toLowerCase();
+  return plateau.findIndex((c) => c.nom.toLowerCase() === n);
 }
 
 const melanger = (t) => {
@@ -181,14 +198,15 @@ class Partie {
     for (const c of this.plateau) if (c.prix) this.proprietes[c.i] = { proprio: null, maisons: 0, hypotheque: false };
     this.paquets = {
       chance: melanger(cfg.chance.map((c, k) => ({ ...c, id: 'chance' + k, paquet: 'chance' }))),
-      caisse: melanger(cfg.caisse.map((c, k) => ({ ...c, id: 'caisse' + k, paquet: 'caisse' }))),
+      caisse: melanger((cfg.bde || cfg.caisse).map((c, k) => ({ ...c, id: 'caisse' + k, paquet: 'caisse' }))),
     };
     this.tour = null;                // { joueurId, etape, doubles, des, peutRelancer }
     this.enchere = null;
     this.echanges = [];
     this.journal = [];
     this.chat = [];
-    this.derniereCarte = null;
+    this.messages = []; // cartes et malchances à lire avant de continuer
+    this.messageSeq = 0;
     this.desSeq = 0;
     this.cagnotte = 0;
     this.maisonsDispo = MAISONS_DISPO;
@@ -255,7 +273,6 @@ class Partie {
 
   nouveauTour(p) {
     this.tour = { joueurId: p.id, etape: 'lancer', doubles: 0, des: null, aConstruit: false };
-    this.derniereCarte = null;
   }
 
   // ------------------------------------------------------------- actions des joueurs
@@ -269,7 +286,7 @@ class Partie {
   // (pas d'achat en attente, pas d'enchère, pas de dette).
   enchainer() {
     if (this.phase !== 'jeu' || !this.tour || this.tour.etape !== 'fin') return;
-    if (this.enchere || this.joueurs.some((x) => x.dette)) return;
+    if (this.enchere || this.messages.length || this.joueurs.some((x) => x.dette)) return;
     this.passerAuSuivant();
   }
 
@@ -283,6 +300,7 @@ class Partie {
     if (p.faillite) throw new Error('Tu as fait faillite, tu ne peux plus jouer.');
     switch (a.type) {
       case 'lancer': return this.lancer(p);
+      case 'lu': return this.lu(p, +a.seq);
       case 'acheter': return this.acheter(p);
       case 'refuser': return this.refuserAchat(p);
       case 'finTour': return this.finTour(p);
@@ -307,8 +325,22 @@ class Partie {
   monTour(p) {
     if (!this.tour || this.tour.joueurId !== p.id) throw new Error("Ce n'est pas ton tour.");
   }
-  // Tant qu'une enchère ou une dette est en cours, le jeu est en pause.
+  // Une carte ou une malchance s'affiche chez tout le monde jusqu'à ce que le joueur clique sur OK
+  afficherMessage(p, type, texte) {
+    this.messages.push({ seq: ++this.messageSeq, type, texte, joueurId: p.id, joueur: p.nom });
+  }
+
+  lu(p, seq) {
+    const m = this.messages[0];
+    if (!m || m.seq !== seq) return; // déjà lu
+    const auteur = this.j(m.joueurId);
+    if (m.joueurId !== p.id && auteur && auteur.connecte && !auteur.faillite) throw new Error(`C'est à ${auteur.nom} de cliquer sur OK.`);
+    this.messages.shift();
+  }
+
+  // Tant qu'une enchère, une dette ou une carte à lire est en cours, le jeu est en pause.
   bloque() {
+    if (this.messages.length) throw new Error(`Attends que ${this.messages[0].joueur} ait lu sa carte.`);
     if (this.enchere) throw new Error('Une enchère est en cours.');
     if (this.joueurs.some((x) => x.dette)) throw new Error('Un joueur doit d\'abord régler une dette.');
   }
@@ -322,7 +354,6 @@ class Partie {
     const double = d1 === d2;
     this.tour.des = [d1, d2];
     this.desSeq++;
-    this.derniereCarte = null;
     this.log(`${p.pion} ${p.nom} lance les dés : ${d1} + ${d2} = ${d1 + d2}${double ? ' (double !)' : ''}`);
 
     if (p.enPrison) {
@@ -415,7 +446,8 @@ class Partie {
       .replaceAll('{bien}', bien !== null ? this.nomCase(bien) : '')
       .replaceAll('{joueur}', cible ? cible.nom : '')
       .replaceAll('{montant}', this.argent(montant));
-    this.derniereMalchance = { texte, joueur: p.nom, seq: (this.derniereMalchance ? this.derniereMalchance.seq : 0) + 1 };
+    this.afficherMessage(p, 'malchance', texte);
+    this.derniereMalchance = { seq: (this.derniereMalchance ? this.derniereMalchance.seq : 0) + 1 };
     this.log(`💥 MALCHANCE pour ${p.nom} ! ${texte}`);
     this.dernierCoup = { joueurId: p.id, case: i, info: '💥 MALCHANCE !' };
     if (type === 'donnerArgent') this.payer(p, cible, montant, 'carte');
@@ -456,7 +488,10 @@ class Partie {
     switch (c.type) {
       case 'prop': case 'gare': case 'compagnie': {
         const pr = this.proprietes[c.i];
-        if (!pr.proprio) {
+        if (!pr.proprio && p.argent < c.prix && !this.cfg.encheres) {
+          this.log(`💸 ${p.nom} n'a pas assez d'argent pour acheter ${c.nom}.`);
+          info(`pas assez d'argent pour acheter (${this.argent(c.prix)})`);
+        } else if (!pr.proprio) {
           this.tour.achatEnAttente = { case: c.i, etapeApres: this.tour.etape };
           this.tour.etape = 'acheter';
         } else if (pr.proprio !== p.id && !pr.hypotheque) {
@@ -520,14 +555,14 @@ class Partie {
     if (pile.length === 0) { this.log('Le paquet est vide !'); return; }
     const carte = pile.shift();
     if (carte.effet !== 'liberation') pile.push(carte); // la carte retourne sous le paquet
-    this.derniereCarte = { paquet, texte: carte.texte, joueur: p.nom, seq: this.desSeq + ':' + Date.now() };
-    this.log(`${paquet === 'chance' ? '❓' : '📦'} ${p.nom} pioche : « ${carte.texte} »`);
+    this.afficherMessage(p, paquet === 'chance' ? 'chance' : 'bde', carte.texte);
+    this.log(`${paquet === 'chance' ? '❓' : '🎉'} ${p.nom} pioche : « ${carte.texte} »`);
     switch (carte.effet) {
       case 'argent':
         if (carte.montant >= 0) p.argent += carte.montant;
         else this.payer(p, null, -carte.montant, 'taxe');
         break;
-      case 'aller': this.allerA(p, carte.case); break;
+      case 'aller': this.allerA(p, trouverCase(this.plateau, carte.case)); break;
       case 'avancer': this.deplacer(p, carte.cases); break;
       case 'reculer':
         p.position = (p.position - carte.cases + 40) % 40;
@@ -667,6 +702,7 @@ class Partie {
 
   terminer(gagnant) {
     this.phase = 'fin';
+    this.messages = [];
     this.gagnant = gagnant.id;
     this.tour = null;
     if (this.enchere) { clearTimeout(this.enchere.timer); this.enchere = null; }
@@ -676,6 +712,7 @@ class Partie {
   // ------------------------------------------------------------- achat et enchères
   acheter(p) {
     this.monTour(p);
+    if (this.messages.length) throw new Error('Clique d\'abord sur OK pour fermer la carte.');
     if (this.tour.etape !== 'acheter') throw new Error("Rien à acheter pour l'instant.");
     if (p.dette) throw new Error("Règle d'abord ta dette.");
     const { case: i, etapeApres } = this.tour.achatEnAttente;
@@ -691,6 +728,7 @@ class Partie {
 
   refuserAchat(p) {
     this.monTour(p);
+    if (this.messages.length) throw new Error('Clique d\'abord sur OK pour fermer la carte.');
     if (this.tour.etape !== 'acheter') throw new Error("Rien à refuser pour l'instant.");
     const { case: i, etapeApres } = this.tour.achatEnAttente;
     this.tour.etape = etapeApres;
@@ -985,8 +1023,7 @@ class Partie {
         actifs: this.enchere.actifs, resteMs: Math.max(0, this.enchere.fin - Date.now()) },
       echanges: this.echanges,
       journal: this.journal.slice(-40),
-      derniereCarte: this.derniereCarte,
-      derniereMalchance: this.derniereMalchance,
+      messages: this.messages,
       dernierCoup: this.dernierCoup || null,
       encheres: !!this.cfg.encheres,
       cagnotte: this.cfg.cagnotteParcGratuit ? this.cagnotte : null,
