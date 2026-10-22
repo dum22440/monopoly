@@ -254,7 +254,6 @@ module.exports = {
     { texte: "Soirée surprise à la coloc de Tom, Lucas et Malo. Le voisin a appelé le proprio : 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
     { texte: "Malo, pharaon autoproclamé de la coloc, t'accorde une audience. Va chez Malo.", effet: "aller", case: 34 },
     { texte: "Lucas a vendu un tracteur à Louis et tu as servi d'intermédiaire. Ta commission : reçois 100 €.", effet: "argent", montant: 100 },
-    { texte: "Ewen a codé une appli « Monopoly de la promo »… attends, c'est ce jeu. Reçois 50 € de droits d'auteur.", effet: "argent", montant: 50 },
     { texte: "L'entreprise d'Amandine a encore rendez-vous au tribunal. Par solidarité, tu paies 50 € d'avocat.", effet: "argent", montant: -50 },
     { texte: "Dario est arrivé à la fac en courant, avant le tram. Va chez Dario lui offrir une boisson isotonique.", effet: "aller", case: 29 },
     { texte: "Théo t'a demandé de l'aider à justifier un like à Agathe. Tu préfères te cacher : direction le cours de Valéria !", effet: "prison" },
