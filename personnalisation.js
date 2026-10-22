@@ -31,8 +31,8 @@ module.exports = {
   // Les montants écrits plus bas restent ceux du vrai Monopoly (ex : 1500, 200, 50…) :
   // c'est le jeu qui ajoute les zéros, y compris dans le texte des cartes.
   echelle: 100,
-  argentDeDepart: 1500,               // Argent de chaque joueur au début
-  salaireCaseDepart: 200,             // Argent reçu en passant par la case Départ
+  argentDeDepart: 1500,               // Argent de chaque joueur au début (= 150 000 € dans le jeu)
+  salaireCaseDepart: 200,             // Argent reçu en passant par la case Départ (= 20 000 € dans le jeu)
 
   // Règle "maison" très connue : les taxes et amendes vont au centre
   // du plateau, et le joueur qui tombe sur le Parc gratuit les gagne.
@@ -84,8 +84,8 @@ module.exports = {
     prison:      "Cours de Valéria",        // la prison
     parcGratuit: "Pause clope",             // le parc gratuit
     allerPrison: "Direction le cours de Valéria !",
-    impot:       { nom: "Frais d'inscription", montant: 200 },
-    taxe:        { nom: "Ticket de RU perdu", montant: 100 },
+    impot:       { nom: "Frais d'inscription", montant: 200 },   // = 20 000 € dans le jeu (× echelle)
+    taxe:        { nom: "Ticket de RU perdu", montant: 100 },     // = 10 000 € dans le jeu (× echelle)
   },
 
   // ===============================================================
