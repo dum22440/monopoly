@@ -209,6 +209,8 @@ module.exports = {
     { texte: "Louis s'est enfin coupé 2 cm de ses cheveux longs : assez pour une perruque. Tu touches ta part de la vente : reçois 150 €.", effet: "argent", montant: 150 },
     { texte: "Ewen a encore explosé sa limite sur Claude en pleine nuit de code. « Faut payer l'abonnement, frère » : perds 15 €.", effet: "argent", montant: -15 },
     { texte: "Tu es élu(e) chef de la coloc de Tom, Lucas et Malo. Premier acte : tu paies ta tournée, 50 € à chaque joueur.", effet: "chaqueJoueur", montant: -50 },
+    { texte: "Valéria te demande de lui payer son voyage à Porto. On ne dit pas non à Valéria : paie 100 €.", effet: "argent", montant: -100 },
+    { texte: "Eric Baudouin te met un tunnel de 2 heures sur l'IA. Convaincu(e), tu fonces à « Investissement dans des cours d'IA ».", effet: "aller", case: "Investissement dans des cours d'IA" },
   ],
 
   // ---------------------------------------------------------------
@@ -231,5 +233,7 @@ module.exports = {
     { texte: "Soirée surprise à la coloc de Tom, Lucas et Malo. Le voisin a appelé le proprio : 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
     { texte: "Manon a parlé de F1 pendant tout l'oral. Le prof te met un point bonus pour avoir fait semblant d'écouter : reçois 10 €.", effet: "argent", montant: 10 },
     { texte: "Justine a reçu un colis de rations de son mari militaire. Tu revends ta part : reçois 100 €.", effet: "argent", montant: 100 },
+    { texte: "Vincent te demande de participer à la poussette de son 15e enfant. Paie 50 €.", effet: "argent", montant: -50 },
+    { texte: "Sandrine te demande de participer aux frais d'enterrement de son beau-père. Paie 50 €.", effet: "argent", montant: -50 },
   ],
 };
