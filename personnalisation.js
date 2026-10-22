@@ -37,13 +37,11 @@ module.exports = {
   encheres: false,
 
   // ---------------------------------------------------------------
-  //  LOYERS (en % du prix du terrain)
-  //  Ordre : terrain nu, 1 maison, 2 maisons, 3 maisons, 4 maisons, hôtel
-  //  Ex : un terrain à 200 € avec 0.35 → loyer de 70 € avec 1 maison.
-  //  (Le Monopoly officiel monte beaucoup plus fort, jusqu'à ×100 !)
-  //  Le loyer d'un terrain nu est doublé quand on a toute la couleur.
+  //  LOYERS : ce sont ceux du vrai Monopoly.
+  //  Pour des loyers plus doux, enlève les // devant la ligne ci-dessous
+  //  (en % du prix du terrain : terrain nu, 1, 2, 3, 4 maisons, hôtel).
   // ---------------------------------------------------------------
-  coefficientsLoyers: [0.1, 0.35, 0.7, 1.1, 1.4, 1.7],
+  // coefficientsLoyers: [0.1, 0.35, 0.7, 1.1, 1.4, 1.7],
 
   // ---------------------------------------------------------------
   //  LES 22 PROPRIÉTÉS (les gens de la promo)
@@ -147,11 +145,11 @@ module.exports = {
   //  🚶 Aller sur une case précise (on touche le salaire si on passe par Départ) :
   //     { texte: "...", effet: "aller", case: 39 },
   //     → Numéros des cases : 0 = Départ, puis on compte dans le sens du jeu.
-  //       1 et 3 = marron · 5 = 1re gare · 6, 8, 9 = bleu clair · 10 = prison (simple visite)
-  //       11, 13, 17 = rose · 14 = 1re compagnie · 15 = 2e gare
-  //       20 = parc gratuit · 21, 23, 24 = rouge · 25 = 3e gare · 26, 27, 29 = jaune
-  //       31, 32, 34 = vert · 35 = 4e gare · 38 = 2e compagnie · 37, 39 = bleu foncé
-  //       Chance : 7, 16, 22, 33 · Caisse de communauté : 2, 12, 19, 28, 36
+  //       2 et 3 = marron · 5 = 1re gare · 6, 7, 9 = bleu clair · 10 = prison (simple visite)
+  //       11, 14, 18 = rose · 13 = 1re compagnie · 15 = 2e gare
+  //       20 = parc gratuit · 21, 23, 24 = rouge · 25 = 3e gare · 26, 28, 29 = jaune
+  //       31, 33, 34 = vert · 35 = 4e gare · 36 = 2e compagnie · 38, 39 = bleu foncé
+  //       Chance : 4, 12, 22, 32 · Caisse de communauté : 1, 8, 17, 27, 37
   //
   //  ⏩ Avancer / ⏪ Reculer de quelques cases :
   //     { texte: "...", effet: "avancer", cases: 2 },
@@ -205,7 +203,7 @@ module.exports = {
     { texte: "Manon a squatté toutes les tables de la BU avec ses fiches fluo. Va réviser à la gare la plus proche.", effet: "gareProche" },
     { texte: "Lucas a ronflé pendant tout le CM. Chaque joueur te paie 10 € pour que tu gardes la vidéo secrète.", effet: "chaqueJoueur", montant: 10 },
     { texte: "Hang a lancé un débat de 45 minutes sur l'ananas dans la pizza. Tu fuis : recule d'1 case.", effet: "reculer", cases: 1 },
-    { texte: "Gildas t'a ENCORE demandé de lui envoyer le cours. Va chez Gildas lui apporter tes notes.", effet: "aller", case: 1 },
+    { texte: "Gildas t'a ENCORE demandé de lui envoyer le cours. Va chez Gildas lui apporter tes notes.", effet: "aller", case: 2 },
     { texte: "Vincent a bloqué l'imprimante de la BU avec 300 pages de mèmes. Paie 15 € de photocopies.", effet: "argent", montant: -15 },
   ],
 
@@ -229,7 +227,7 @@ module.exports = {
 
     // --- Vannes sur la promo (remplace-les par vos vraies anecdotes !) ---
     { texte: "Baptiste t'a emprunté ton chargeur… en septembre. Paie 20 € pour en racheter un.", effet: "argent", montant: -20 },
-    { texte: "Eva a fait les fiches de révision pour toute la promo. Va dire merci chez Eva.", effet: "aller", case: 8 },
+    { texte: "Eva a fait les fiches de révision pour toute la promo. Va dire merci chez Eva.", effet: "aller", case: 7 },
     { texte: "Amandine a répondu à la question du prof avant même qu'il la pose. Motivé(e), tu avances de 2 cases.", effet: "avancer", cases: 2 },
     { texte: "Gwen a lancé un apéro surprise. Va directement chez Gwen.", effet: "aller", case: 3 },
     { texte: "Fanny a organisé la soirée de l'année. Le voisin a moins aimé : paie 30 € d'amende pour tapage.", effet: "argent", montant: -30 },
