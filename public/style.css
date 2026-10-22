@@ -111,14 +111,15 @@ h1 {
 /* ---------- Mise en page du jeu ---------- */
 /* Le plateau au centre, les joueurs dans les coins (comme autour d'une table) */
 #jeu {
-  --taille: min(calc(100vh - 86px), calc(100vw - 440px));
+  /* taille du plateau : toute la hauteur, moins la barre de chat en bas */
+  --taille: min(calc(100vh - 96px), calc(100vw - 440px));
   display: grid; height: calc(100vh - 64px); padding: 10px 14px 0; gap: 0 14px;
   grid-template-columns: minmax(0, 1fr) var(--taille) minmax(0, 1fr);
   grid-template-rows: repeat(4, minmax(0, 1fr));
   grid-template-areas: "p1 board p2" "p4 board p5" "p6 board p7" "p0 board p3";
 }
 #jeu.hidden { display: none; }
-.zone-plateau { grid-area: board; position: relative; width: var(--taille); align-self: center; }
+.zone-plateau { grid-area: board; position: relative; width: var(--taille); align-self: start; }
 .btn-vue {
   position: absolute; top: 15%; right: 15%; z-index: 20; border: none; border-radius: 20px; padding: 6px 12px;
   background: rgba(255,255,255,.92); color: #1d1238; font-weight: 600; font-size: 13px; box-shadow: 0 3px 10px rgba(0,0,0,.35);
