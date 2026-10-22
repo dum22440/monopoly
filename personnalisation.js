@@ -23,6 +23,14 @@ module.exports = {
   // ---------------------------------------------------------------
   nomDuJeu: "Monopoly de la promo",   // Titre affiché au milieu du plateau
   monnaie: "€",                       // Symbole de l'argent
+
+  // Tous les montants du jeu sont multipliés par ce nombre : prix, loyers, maisons,
+  // argent de départ, salaire, taxes, cartes, malchances…
+  // 100 = une gare coûte 20 000 €, un loyer de gare 2 500 €, on démarre avec 150 000 €.
+  // 1 = montants du Monopoly d'origine (une gare coûte 200 €).
+  // Les montants écrits plus bas restent ceux du vrai Monopoly (ex : 1500, 200, 50…) :
+  // c'est le jeu qui ajoute les zéros, y compris dans le texte des cartes.
+  echelle: 100,
   argentDeDepart: 1500,               // Argent de chaque joueur au début
   salaireCaseDepart: 200,             // Argent reçu en passant par la case Départ
 

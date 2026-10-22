@@ -79,6 +79,7 @@ const COULEURS = ['#ff3b6b', '#2ec5ff', '#ffd23f', '#3bff8f', '#b36bff', '#ff8a3
 //  Construction du plateau à partir du fichier de personnalisation
 // ---------------------------------------------------------------------
 function construirePlateau(cfg) {
+  const E = echelle(cfg);
   const noms = {};
   for (const g of Object.keys(GROUPES)) noms[g] = [...(cfg.proprietes[g] || [])];
   const gares = [...cfg.gares];
@@ -89,16 +90,16 @@ function construirePlateau(cfg) {
     switch (type) {
       case 'prop':
         Object.assign(c, { nom: noms[groupe].shift(), groupe, couleur: GROUPES[groupe].couleur,
-          prix, loyers: calculerLoyers(cfg, prix, loyers), prixMaison: GROUPES[groupe].maison });
+          prix: prix * E, loyers: calculerLoyers(cfg, prix, loyers).map((l) => l * E), prixMaison: GROUPES[groupe].maison * E });
         break;
-      case 'gare': Object.assign(c, { nom: gares.shift(), prix: 200 }); break;
-      case 'compagnie': Object.assign(c, { nom: comp.shift(), prix: 150 }); break;
+      case 'gare': Object.assign(c, { nom: gares.shift(), prix: 200 * E }); break;
+      case 'compagnie': Object.assign(c, { nom: comp.shift(), prix: 150 * E }); break;
       case 'depart': c.nom = cs.depart; break;
       case 'prison': c.nom = cs.prison; break;
       case 'parc': c.nom = cs.parcGratuit; break;
       case 'allerPrison': c.nom = cs.allerPrison; break;
-      case 'impot': Object.assign(c, { nom: cs.impot.nom, montant: cs.impot.montant }); break;
-      case 'taxe': Object.assign(c, { nom: cs.taxe.nom, montant: cs.taxe.montant }); break;
+      case 'impot': Object.assign(c, { nom: cs.impot.nom, montant: cs.impot.montant * E }); break;
+      case 'taxe': Object.assign(c, { nom: cs.taxe.nom, montant: cs.taxe.montant * E }); break;
       case 'chance': c.nom = 'Chance'; break;
       case 'caisse': c.nom = 'BDE'; break;
     }
@@ -108,6 +109,31 @@ function construirePlateau(cfg) {
 
 // Loyers : si personnalisation.js donne des coefficients, loyer = prix du terrain × coefficient
 // (terrain nu, 1, 2, 3, 4 maisons, hôtel). Sinon on garde les loyers officiels.
+// Tous les montants du jeu sont multipliés par "echelle" (ex : 1000 → une gare coûte 200 000 €)
+function echelle(cfg) {
+  return typeof cfg.echelle === 'number' && cfg.echelle > 0 ? cfg.echelle : 1;
+}
+
+// Écrit un montant avec des espaces entre les milliers : 1500000 → "1 500 000"
+function formaterMontant(n) {
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+}
+
+// Copie du fichier de personnalisation avec les montants (et les textes des cartes) à l'échelle
+function configALEchelle(cfg) {
+  const E = echelle(cfg);
+  const c = JSON.parse(JSON.stringify(cfg));
+  c.argentDeDepart *= E;
+  c.salaireCaseDepart *= E;
+  if (c.malchance) c.malchance.montant *= E;
+  const texte = (t) => t.replace(/(\d+)(\s?)€/g, (_, n, esp) => formaterMontant(+n * E) + '\u00a0€');
+  for (const paquet of [c.chance, c.bde || c.caisse]) for (const carte of paquet) {
+    for (const k of ['montant', 'parMaison', 'parHotel']) if (typeof carte[k] === 'number') carte[k] *= E;
+    carte.texte = texte(carte.texte);
+  }
+  return c;
+}
+
 function calculerLoyers(cfg, prix, officiels) {
   const k = cfg.coefficientsLoyers;
   if (!Array.isArray(k) || k.length !== 6) return officiels;
@@ -132,6 +158,7 @@ function verifierConfig(cfg) {
   for (const k of ['depart', 'prison', 'parcGratuit', 'allerPrison']) if (typeof cs[k] !== 'string') err.push(`Il manque "${k}" dans "casesSpeciales".`);
   for (const k of ['impot', 'taxe']) if (!cs[k] || typeof cs[k].nom !== 'string' || typeof cs[k].montant !== 'number') err.push(`"${k}" dans "casesSpeciales" doit avoir un nom et un montant.`);
   for (const k of ['argentDeDepart', 'salaireCaseDepart']) if (typeof cfg[k] !== 'number') err.push(`"${k}" doit être un nombre.`);
+  if (cfg.echelle !== undefined && !(typeof cfg.echelle === 'number' && cfg.echelle > 0)) err.push('"echelle" doit être un nombre plus grand que 0 (ex : 1000).');
   const effets = {
     argent: ['montant'], aller: [], avancer: ['cases'], reculer: ['cases'], prison: [], liberation: [],
     chaqueJoueur: ['montant'], reparations: ['parMaison', 'parHotel'], gareProche: [], compagnieProche: [],
@@ -186,7 +213,8 @@ const de = () => crypto.randomInt(1, 7);
 //  Une partie
 // =====================================================================
 class Partie {
-  constructor(code, cfg, onChange) {
+  constructor(code, cfgOriginal, onChange) {
+    const cfg = configALEchelle(cfgOriginal);
     this.code = code;
     this.cfg = cfg;
     this.plateau = construirePlateau(cfg);
@@ -224,7 +252,8 @@ class Partie {
   j(id) { return this.joueurs.find((p) => p.id === id); }
   actifs() { return this.joueurs.filter((p) => !p.faillite); }
   courant() { return this.tour && this.j(this.tour.joueurId); }
-  argent(n) { return n + ' ' + this.cfg.monnaie; }
+  argent(n) { return formaterMontant(n) + '\u00a0' + this.cfg.monnaie; }
+  get amende() { return AMENDE_PRISON * echelle(this.cfg); }
   log(txt) {
     this.journal.push({ t: Date.now(), txt });
     if (this.journal.length > 80) this.journal.shift();
@@ -372,10 +401,10 @@ class Partie {
         return;
       }
       // 3e échec : doit payer l'amende puis avancer
-      this.log(`${p.nom} a raté 3 fois : amende de ${this.argent(AMENDE_PRISON)} et sortie obligatoire.`);
+      this.log(`${p.nom} a raté 3 fois : amende de ${this.argent(this.amende)} et sortie obligatoire.`);
       p.enPrison = false; p.toursPrison = 0;
       this.tour.etape = 'fin';
-      this.payer(p, null, AMENDE_PRISON, 'amende');
+      this.payer(p, null, this.amende, 'amende');
       this.deplacerAuxDes(p, d1 + d2);
       return;
     }
@@ -534,13 +563,13 @@ class Partie {
     const proprio = pr.proprio;
     if (c.type === 'gare') {
       const n = this.plateau.filter((x) => x.type === 'gare' && this.proprietes[x.i].proprio === proprio).length;
-      return LOYERS_GARE[n] * (mod === 'gareDouble' ? 2 : 1);
+      return LOYERS_GARE[n] * echelle(this.cfg) * (mod === 'gareDouble' ? 2 : 1);
     }
     if (c.type === 'compagnie') {
       const total = this.tour.des ? this.tour.des[0] + this.tour.des[1] : 7;
-      if (mod === 'compagnie10') return total * 10;
+      if (mod === 'compagnie10') return total * 10 * echelle(this.cfg);
       const n = this.plateau.filter((x) => x.type === 'compagnie' && this.proprietes[x.i].proprio === proprio).length;
-      return total * (n === 2 ? 10 : 4);
+      return total * (n === 2 ? 10 : 4) * echelle(this.cfg);
     }
     if (pr.maisons > 0) return c.loyers[pr.maisons];
     return this.possedeGroupe(proprio, c.groupe) ? c.loyers[0] * 2 : c.loyers[0];
@@ -803,11 +832,11 @@ class Partie {
     this.monTour(p);
     this.bloque();
     if (!p.enPrison || this.tour.etape !== 'lancer') throw new Error('Impossible maintenant.');
-    if (p.argent < AMENDE_PRISON) throw new Error("Pas assez d'argent.");
-    p.argent -= AMENDE_PRISON;
-    this.encaisser(null, AMENDE_PRISON, 'amende');
+    if (p.argent < this.amende) throw new Error("Pas assez d'argent.");
+    p.argent -= this.amende;
+    this.encaisser(null, this.amende, 'amende');
     p.enPrison = false; p.toursPrison = 0;
-    this.log(`💸 ${p.nom} paie ${this.argent(AMENDE_PRISON)} pour sortir de ${this.nomCase(PRISON)}.`);
+    this.log(`💸 ${p.nom} paie ${this.argent(this.amende)} pour sortir de ${this.nomCase(PRISON)}.`);
   }
 
   utiliserCarteLiberation(p) {
@@ -1032,6 +1061,8 @@ class Partie {
       gagnant: this.gagnant,
       pions: PIONS,
       salaire: this.cfg.salaireCaseDepart,
+      echelle: echelle(this.cfg),
+      amende: this.amende,
     };
   }
 }

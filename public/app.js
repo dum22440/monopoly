@@ -60,7 +60,11 @@ function toast(texte, erreur = false) {
 function envoyer(type, donnees = {}) {
   socket.emit('action', { type, ...donnees }, (r) => { if (r && r.erreur) toast(r.erreur, true); });
 }
-const argent = (n) => `${n} ${etat ? etat.monnaie : '€'}`;
+// Montants avec des espaces entre les milliers : 150000 → "150 000 €"
+const formater = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+const argent = (n) => `${formater(n)}\u00a0${etat ? etat.monnaie : '€'}`;
+// Version courte pour les petites cases du plateau : 6000 → "6 k€"
+const argentCourt = (n) => (n >= 1000 && n % 100 === 0 ? `${String(n / 1000).replace('.', ',')}\u00a0k${etat.monnaie}` : argent(n));
 const joueur = (id) => etat.joueurs.find((p) => p.id === id);
 const moiJ = () => etat && joueur(moi);
 const nomJ = (id) => { const p = joueur(id); return p ? `${p.pion} ${esc(p.nom)}` : '?'; };
@@ -249,7 +253,7 @@ function construirePlateau() {
     d.style.gridRow = ligne;
     d.style.gridColumn = col;
     d.id = 'case-' + c.i;
-    const prix = c.prix ? `<div class="prix">${argent(c.prix)}</div>` : c.montant ? `<div class="prix">${argent(c.montant)}</div>` : '';
+    const prix = c.prix ? `<div class="prix">${argentCourt(c.prix)}</div>` : c.montant ? `<div class="prix">${argentCourt(c.montant)}</div>` : '';
     const bande = c.type === 'prop' ? `<div class="bande" style="background:${c.couleur}"><span class="maisons"></span></div>` : '';
     const icone = c.type !== 'prop' ? `<div class="icone">${ICONES[c.type] || ''}</div>` : '';
     d.innerHTML = `${bande}<div class="infos">${c.type === 'coin' ? '' : icone}<div class="nom">${esc(c.nom)}</div>${prix}</div><div class="proprio hidden"></div>`;
@@ -438,14 +442,15 @@ for (let k = 0; k < 6; k++) $('#siege-' + k).onclick = (e) => {
 function dessinerCentre() {
   const info = $('#centre-info'), act = $('#actions');
   if (animationEnCours) return;
-  // Ligne 1 : où vient d'arriver le dernier joueur qui a bougé (et ce qui lui arrive)
+  // Ce qui vient de se passer : où est arrivé le dernier joueur qui a bougé
   const dc = etat.dernierCoup;
   const qui = dc && joueur(dc.joueurId);
   $('#position').innerHTML = qui
     ? `${qui.pion} <b>${esc(qui.nom)}</b> est sur <b>${esc(etat.plateau[dc.case].nom)}</b>${dc.info ? `<br><small>${esc(dc.info)}</small>` : ''}`
     : '';
   if (etat.phase === 'fin') {
-    info.innerHTML = `🏆 <b>${nomJ(etat.gagnant)}</b> a gagné !`;
+    $('#joueur-actif').innerHTML = `🏆 ${nomJ(etat.gagnant)}`;
+    info.innerHTML = 'a gagné la partie !';
     act.innerHTML = '<button class="btn rose" id="btn-rejouer">🔁 Nouvelle partie</button>';
     $('#btn-rejouer').onclick = nouvellePartie;
     return;
@@ -453,45 +458,50 @@ function dessinerCentre() {
   const m = moiJ();
   const t = etat.tour;
   const courant = joueur(t.joueurId);
+  const aMoi = t.joueurId === moi;
+  // Le joueur qui joue, en gros, dans sa couleur : pareil pour tout le monde
+  const ja = $('#joueur-actif');
+  ja.style.setProperty('--couleur', courant.couleur);
+  ja.innerHTML = `<span class="ja-pion">${courant.pion}</span><span class="ja-nom">${esc(courant.nom)}${aMoi ? ' <small>(toi)</small>' : ''}</span>`;
+
+  // Tout le monde voit la même phrase et les mêmes boutons ;
+  // les boutons ne marchent que pour le joueur qui joue (grisés chez les autres).
   const boutons = [];
+  const bouton = (classe, action, texte, actif = true) =>
+    boutons.push(`<button class="btn ${classe}" data-a="${action}" ${aMoi && actif ? '' : 'disabled'}>${texte}</button>`);
   let texte = '';
   const endettes = etat.joueurs.filter((p) => p.dette);
 
-  // Ligne 2 : à qui de jouer, et les boutons
   if (m && m.dette) {
+    // Seul cas personnel : c'est MOI qui dois de l'argent
     texte = `⚠️ Tu dois <b>${argent(m.dette.montant)}</b> ! Vends ou hypothèque (touche tes propriétés).`;
     boutons.push(`<button class="btn vert" data-a="payerDette" ${m.argent < m.dette.montant ? 'disabled' : ''}>💸 Payer</button>`);
-    boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes propriétés</button>');
+    boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes terrains</button>');
     boutons.push('<button class="btn rouge" data-a="faillite">💀 Faillite</button>');
   } else if (endettes.length) {
     texte = `⏳ ${endettes.map((p) => `<b>${esc(p.nom)}</b>`).join(', ')} doit trouver de l'argent…`;
   } else if (etat.messages.length) {
-    texte = `📖 ${esc(etat.messages[0].joueur)} lit sa carte…`;
+    texte = `📖 lit sa carte…`;
   } else if (etat.enchere) {
     texte = '🔨 Enchères en cours…';
-  } else if (t.etape === 'acheter' && t.joueurId !== moi) {
-    texte = `${courant.pion} <b>${esc(courant.nom)}</b> hésite à acheter…`;
-  } else if (t.joueurId === moi) {
-    if (t.etape === 'acheter') {
-      const c = etat.plateau[t.achat];
-      texte = `Tu achètes ?`;
-      boutons.push(`<button class="btn vert principal" data-a="acheter" ${m.argent < c.prix ? 'disabled' : ''}>✅ Acheter</button>`);
-      boutons.push(`<button class="btn gris" data-a="refuser">${etat.encheres ? '🔨 Enchères' : '❌ Non merci'}</button>`);
-    } else if (t.etape === 'lancer' && m.enPrison) {
-      texte = `🚔 Tu es au <b>${esc(etat.plateau[10].nom)}</b> (essai ${m.toursPrison + 1}/3)`;
-      boutons.push('<button class="btn rose principal" data-a="lancer">🎲 Tenter un double</button>');
-      boutons.push(`<button class="btn jaune" data-a="payerPrison" ${m.argent < 50 ? 'disabled' : ''}>Sortir pour ${argent(50)}</button>`);
-      if (m.cartesLiberation) boutons.push('<button class="btn vert" data-a="carteLiberation">🔑 Utiliser ma carte</button>');
-    } else if (t.etape === 'lancer') {
-      texte = t.doubles ? '🎉 Double ! <b>Rejoue</b> !' : "🎯 C'est <b>ton tour</b> !";
-      boutons.push('<button class="btn rose principal" data-a="lancer">🎲 Lancer les dés</button>');
-      boutons.push('<button class="btn gris" data-a="gerer">🏠 Mes terrains</button>');
-    } else {
-      boutons.push('<button class="btn bleu principal" data-a="finTour">✅ Fin du tour</button>');
-    }
+  } else if (t.etape === 'acheter') {
+    const c = etat.plateau[t.achat];
+    texte = `Acheter <b>${esc(c.nom)}</b> ?`;
+    bouton('vert principal', 'acheter', '✅ Acheter', courant.argent >= c.prix);
+    bouton('gris', 'refuser', etat.encheres ? '🔨 Enchères' : '❌ Non merci');
+  } else if (t.etape === 'lancer' && courant.enPrison) {
+    texte = `🚔 est au <b>${esc(etat.plateau[10].nom)}</b> (essai ${courant.toursPrison + 1}/3)`;
+    bouton('rose principal', 'lancer', '🎲 Tenter un double');
+    bouton('jaune', 'payerPrison', `Sortir pour ${argent(etat.amende)}`, courant.argent >= etat.amende);
+    if (courant.cartesLiberation) bouton('vert', 'carteLiberation', '🔑 Utiliser sa carte');
+  } else if (t.etape === 'lancer') {
+    texte = t.doubles ? '🎉 Double ! <b>Rejoue</b> !' : 'lance les dés…';
+    bouton('rose principal', 'lancer', '🎲 Lancer les dés');
+    if (aMoi) bouton('gris', 'gerer', '🏠 Mes terrains');
   } else {
-    texte = `Au tour de <b>${courant.pion} ${esc(courant.nom)}</b>${courant.connecte ? '' : ' (déconnecté…)'}`;
+    bouton('bleu principal', 'finTour', '✅ Fin du tour');
   }
+  if (!courant.connecte) texte += ' <small>(déconnecté…)</small>';
   info.innerHTML = texte;
   act.innerHTML = boutons.join('');
   // Grande fiche de la case à vendre : couleur, nom et prix en gros, pour tout le monde
@@ -593,9 +603,9 @@ function htmlPropriete(i, avecTitre = true) {
     lignes.splice(1, 0, ['Couleur complète (terrain nu)', argent(c.loyers[0] * 2), false]);
     lignes.push(['Prix d\'une maison', argent(c.prixMaison), false]);
   } else if (c.type === 'gare') {
-    lignes = [25, 50, 100, 200].map((l, k) => [`${k + 1} gare${k ? 's' : ''} possédée${k ? 's' : ''}`, argent(l), false]);
+    lignes = [25, 50, 100, 200].map((l, k) => [`${k + 1} gare${k ? 's' : ''} possédée${k ? 's' : ''}`, argent(l * etat.echelle), false]);
   } else {
-    lignes = [['1 compagnie', '4 × les dés', false], ['2 compagnies', '10 × les dés', false]];
+    lignes = [['1 compagnie', `dés × ${argent(4 * etat.echelle)}`, false], ['2 compagnies', `dés × ${argent(10 * etat.echelle)}`, false]];
   }
   lignes.push(['Valeur hypothécaire', argent(c.prix / 2), false]);
   h += `<table class="tableau-loyers">${lignes.map(([a, b, act]) => `<tr class="${act ? 'actif' : ''}"><td>${a}</td><td>${b}</td></tr>`).join('')}</table>`;
@@ -652,7 +662,11 @@ function dessinerEnchere() {
   $('#enchere-actions').classList.toggle('hidden', !participe);
   $('#enchere-info').textContent = !participe ? 'Tu ne participes pas (ou plus) à cette enchère.'
     : e.meilleur === moi ? '😎 Tu es le meilleur enchérisseur !' : `Ton argent : ${argent(m.argent)}`;
-  for (const b of $$('#enchere-actions [data-plus]')) b.disabled = !m || e.montant + +b.dataset.plus > m.argent || e.meilleur === moi;
+  for (const b of $$('#enchere-actions [data-plus]')) {
+    const plus = +b.dataset.plus * etat.echelle;
+    b.textContent = '+' + argentCourt(plus);
+    b.disabled = !m || e.montant + plus > m.argent || e.meilleur === moi;
+  }
 }
 setInterval(() => {
   if (!etat || !etat.enchere) return;
@@ -661,7 +675,7 @@ setInterval(() => {
 }, 200);
 $('#enchere-actions').onclick = (ev) => {
   const b = ev.target.closest('[data-plus]');
-  if (b) envoyer('encherir', { montant: etat.enchere.montant + +b.dataset.plus });
+  if (b) envoyer('encherir', { montant: etat.enchere.montant + +b.dataset.plus * etat.echelle });
 };
 $('#enchere-perso-btn').onclick = () => {
   envoyer('encherir', { montant: Math.floor(+$('#enchere-perso').value) });
@@ -745,11 +759,11 @@ $('#btn-nouvel-echange').onclick = () => {
         <select id="ech-cible">${autres.map((p) => `<option value="${p.id}" ${p.id === cible ? 'selected' : ''}>${p.pion} ${esc(p.nom)}</option>`).join('')}</select>
       </label>
       <div class="champ">🎁 Tu donnes ${listeProps(moi, 'donne')}
-        <input id="ech-donne-argent" type="number" min="0" max="${m.argent}" inputmode="numeric" placeholder="Argent que tu donnes (max ${m.argent})">
+        <input id="ech-donne-argent" type="number" min="0" max="${m.argent}" inputmode="numeric" placeholder="Argent que tu donnes (max ${argent(m.argent)})">
         ${m.cartesLiberation ? `<label class="petit"><input type="checkbox" id="ech-donne-carte"> + 1 carte 🔑 de libération</label>` : ''}
       </div>
       <div class="champ">🙏 Tu demandes ${listeProps(cible, 'recoit')}
-        <input id="ech-recoit-argent" type="number" min="0" max="${autre.argent}" inputmode="numeric" placeholder="Argent que tu demandes (max ${autre.argent})">
+        <input id="ech-recoit-argent" type="number" min="0" max="${autre.argent}" inputmode="numeric" placeholder="Argent que tu demandes (max ${argent(autre.argent)})">
         ${autre.cartesLiberation ? `<label class="petit"><input type="checkbox" id="ech-recoit-carte"> + 1 carte 🔑 de libération</label>` : ''}
       </div>
       <button id="ech-envoyer" class="btn rose gros">📨 Envoyer la proposition</button>`;

@@ -388,6 +388,17 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
 .victoire { text-align: center; font-size: 22px; }
 .victoire .grand { font-size: 70px; animation: rebond 1s ease-in-out infinite; }
 
+/* ---------- Le joueur qui joue, en gros au milieu ---------- */
+.joueur-actif {
+  display: flex; align-items: center; gap: .3em; padding: .15em .7em .15em .3em; border-radius: 999px;
+  background: rgba(0,0,0,.4); border: 3px solid var(--couleur); box-shadow: 0 0 22px var(--couleur);
+  font-size: 2em; font-weight: 700; line-height: 1.1; max-width: 100%;
+}
+.joueur-actif:empty { display: none; }
+.ja-pion { font-size: 1.15em; }
+.ja-nom { color: var(--couleur); text-shadow: 0 2px 6px rgba(0,0,0,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ja-nom small { font-size: .5em; color: #fff; }
+
 /* ---------- Grande fiche de la case à vendre ---------- */
 .fiche { width: min(100%, 300px); background: #fff; color: var(--case-texte); border-radius: 14px; overflow: hidden; text-align: center;
   box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: zoom .3s cubic-bezier(.2,1.3,.5,1); }
@@ -451,7 +462,7 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
 /* ---------- Téléphones et écrans étroits ---------- */
 @media (max-width: 900px), (max-aspect-ratio: 1/1) {
   #jeu {
-    height: auto; min-height: 100vh; padding: 6px 6px 70px; gap: 6px;
+    height: auto; min-height: 100vh; padding: 4px 6px 74px; gap: 4px;
     grid-template-columns: 1fr 1fr; grid-template-rows: auto;
     grid-template-areas: "p1 p2" "p4 p5" "board board" "p0 p3";
     align-content: start;
@@ -460,7 +471,8 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
   .zone-plateau { justify-self: center; }
   .siege, #siege-0, #siege-3 { justify-content: flex-start; padding: 0; }
   .joueur { width: 100%; }
-  .joueur .avatar { width: 46px; height: 46px; font-size: 27px; border-width: 3px; border-radius: 11px; }
+  .joueur .avatar { width: 40px; height: 40px; font-size: 23px; border-width: 3px; border-radius: 10px; }
+  .joueur-actif { font-size: 1.5em; }
   .joueur .bandeau-nom { font-size: 13px; padding: 2px 8px 2px 12px; }
   .joueur .somme { font-size: 15px; padding: 2px 8px 2px 12px; }
   .siege .details { font-size: 11px; }
@@ -468,10 +480,12 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
   .hud { font-size: clamp(10px, 3vw, 16px); }
   .case .prix { font-size: .95em; opacity: .9; }
   /* Sur téléphone, le plateau est plus haut que large : plus de place pour les noms */
-  .plateau { gap: 1px; padding: 1px; aspect-ratio: auto; height: calc(var(--taille) * 1.45); }
+  .plateau { gap: 1px; padding: 1px; aspect-ratio: auto; height: max(calc(var(--taille) * 1.1), min(calc(var(--taille) * 1.45), calc(100svh - 150px))); }
   .hud .centre-titre { display: none; }
   .case .icone, .case.gauche .icone, .case.droite .icone { font-size: 1.1em; }
   .case.coin .icone { font-size: 2em; }
   .case .nom { line-height: 1.05; padding-top: 1px; }
+  .case.nom-long .nom { font-size: .8em; }
+  .case.nom-long .icone { display: none; }
   .btn-vue { font-size: 11px; padding: 4px 9px; }
 }
