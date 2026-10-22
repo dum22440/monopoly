@@ -98,9 +98,10 @@ module.exports = {
   // ---------------------------------------------------------------
   malchance: {
     nombreDeCases: 3,     // combien de cases piégées en même temps (0 = désactivé)
-    montant: 100,         // argent donné ou perdu
+    montant: 200,         // argent donné ou perdu
+    tauxDeRevente: 0.25,  // un bien revendu ne rapporte que 25 % de son prix (vente forcée !)
 
-    // 1) Le joueur DONNE une de ses propriétés à un autre joueur
+    // 1) Le joueur DONNE sa propriété la plus chère à un autre joueur
     donnerUnBien: [
       "Tu as parié {bien} au beer-pong contre {joueur}… et tu as perdu. {bien} appartient maintenant à {joueur}.",
       "Tu t'es endormi(e) en pleine soirée : {joueur} en a profité pour te piquer {bien}.",
@@ -108,7 +109,7 @@ module.exports = {
       "Tu as joué {bien} à pierre-feuille-ciseaux contre {joueur}. Tu as fait pierre. {joueur} a fait feuille.",
     ],
 
-    // 2) Le joueur VEND une de ses propriétés à la banque (à moitié prix)
+    // 2) Le joueur VEND sa propriété la plus chère à la banque, à prix cassé
     vendreUnBien: [
       "Fin de mois difficile, même les pâtes sont trop chères : tu revends {bien} à la banque pour {montant}.",
       "Ton banquier a vu tes dépenses au bar. Saisie express : {bien} est revendu pour {montant}.",

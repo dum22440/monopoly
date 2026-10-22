@@ -392,12 +392,12 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
   position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; cursor: pointer;
   background: radial-gradient(circle, rgba(90, 0, 0, .93), rgba(15, 0, 0, .97)); animation: fondu .2s; backdrop-filter: blur(6px);
 }
-.malchance-boite { max-width: 600px; text-align: center; padding: 26px 20px; border-radius: 24px; border: 3px solid #ff1f1f; background: rgba(0,0,0,.45); box-shadow: 0 0 60px rgba(255,0,0,.5); animation: secousse .6s cubic-bezier(.36,.07,.19,.97); }
+.malchance-boite { width: min(100%, 780px); margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 26px 20px; border-radius: 24px; border: 3px solid #ff1f1f; background: rgba(0,0,0,.45); box-shadow: 0 0 60px rgba(255,0,0,.5); animation: secousse .6s cubic-bezier(.36,.07,.19,.97); }
 .malchance-titre {
-  font-size: clamp(48px, 13vw, 120px); font-weight: 700; color: #ff1f1f; letter-spacing: 4px; line-height: 1;
+  font-size: clamp(40px, 11vw, 104px); font-weight: 700; color: #ff1f1f; letter-spacing: 4px; line-height: 1;
   text-shadow: 0 0 20px #ff0000, 0 0 50px #ff0000, 0 6px 0 #5a0000; animation: alarme .8s ease-in-out infinite alternate;
 }
-.malchance p { font-size: clamp(17px, 4.5vw, 24px); font-weight: 600; margin: 18px 0 10px; color: #fff; text-shadow: 0 2px 6px #000; }
+.malchance p { text-wrap: balance; font-size: clamp(17px, 4.5vw, 24px); font-weight: 600; margin: 18px 0 10px; color: #fff; text-shadow: 0 2px 6px #000; }
 .malchance small { color: #ffb3b3; }
 
 /* ---------- Animations ---------- */

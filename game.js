@@ -393,7 +393,8 @@ class Partie {
     if (cedables.length && autres.length) possibles.push('donnerUnBien');
     const type = possibles[crypto.randomInt(possibles.length)];
     const cible = autres.length ? autres[crypto.randomInt(autres.length)] : null;
-    const bien = cedables.length ? cedables[crypto.randomInt(cedables.length)] : null;
+    // Sentence sévère : c'est toujours la propriété la plus chère qui part
+    const bien = cedables.length ? cedables.reduce((x, y) => (this.plateau[y].prix > this.plateau[x].prix ? y : x)) : null;
     let montant = m.montant;
 
     if (type === 'donnerUnBien') {
@@ -402,7 +403,8 @@ class Partie {
       this.echanges = this.echanges.filter((x) => { try { this.validerEchange(x); return true; } catch { return false; } });
     } else if (type === 'vendreUnBien') {
       const pr = this.proprietes[bien];
-      montant = pr.hypotheque ? 0 : this.plateau[bien].prix / 2;
+      const taux = typeof m.tauxDeRevente === 'number' ? m.tauxDeRevente : 0.25;
+      montant = pr.hypotheque ? 0 : Math.round(this.plateau[bien].prix * taux);
       pr.proprio = null; pr.hypotheque = false;
       p.argent += montant;
       this.echanges = this.echanges.filter((x) => { try { this.validerEchange(x); return true; } catch { return false; } });
@@ -442,6 +444,7 @@ class Partie {
     p.enPrison = true;
     p.toursPrison = 0;
     if (this.tour && this.tour.joueurId === p.id) this.tour.etape = 'fin';
+    this.dernierCoup = { joueurId: p.id, case: PRISON, info: 'direction ' + this.nomCase(PRISON) + ' !' };
   }
 
   // Que se passe-t-il quand on s'arrête sur une case ?
