@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#160b2e">
+  <title>Monopoly entre potes</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ============ ÉCRAN D'ACCUEIL ============ -->
+  <section id="accueil" class="ecran">
+    <div class="carte-accueil">
+      <div class="logo">🎲</div>
+      <h1 id="titre-jeu">Monopoly entre potes</h1>
+      <p class="sous-titre">Crée une partie et envoie le lien à tes amis !</p>
+
+      <label class="champ">Ton pseudo
+        <input id="pseudo" maxlength="16" placeholder="Ex : Louis" autocomplete="off">
+      </label>
+      <div class="champ">Ton pion
+        <div id="choix-pion" class="choix-pion"></div>
+      </div>
+
+      <div id="bloc-reprendre"></div>
+
+      <div id="bloc-rejoindre-lien" class="hidden">
+        <button id="btn-rejoindre-lien" class="btn gros vert">Rejoindre la partie <span id="code-lien"></span></button>
+      </div>
+
+      <div id="bloc-normal">
+        <button id="btn-creer" class="btn gros rose">✨ Créer une partie</button>
+        <div class="ou"><span>ou</span></div>
+        <div class="ligne">
+          <input id="code" maxlength="5" placeholder="CODE" autocomplete="off">
+          <button id="btn-rejoindre" class="btn bleu">Rejoindre</button>
+        </div>
+      </div>
+      <p id="erreur-accueil" class="erreur"></p>
+    </div>
+  </section>
+
+  <!-- ============ SALON D'ATTENTE ============ -->
+  <section id="salon" class="ecran hidden">
+    <div class="carte-accueil">
+      <h2>Salon d'attente</h2>
+      <p class="sous-titre">Code de la partie</p>
+      <div id="salon-code" class="gros-code"></div>
+      <div class="ligne partage">
+        <button id="btn-copier" class="btn bleu">📋 Copier le lien</button>
+        <button id="btn-partager" class="btn violet hidden">📤 Partager</button>
+      </div>
+      <p class="petit">Envoie ce lien à tes amis (WhatsApp, Snap, Discord…)</p>
+      <ul id="salon-joueurs" class="salon-joueurs"></ul>
+      <div class="champ">Change ton pion
+        <div id="salon-pions" class="choix-pion"></div>
+      </div>
+      <button id="btn-demarrer" class="btn gros vert hidden">🚀 Lancer la partie</button>
+      <p id="salon-attente" class="petit"></p>
+    </div>
+  </section>
+
+  <!-- ============ JEU ============ -->
+  <section id="jeu" class="ecran hidden">
+    <div id="zone-plateau" class="zone-plateau">
+      <button id="btn-vue" class="btn-vue" title="Changer de vue"></button>
+      <!-- Le plateau (incliné en vue 3D) -->
+      <div class="scene">
+        <div id="plateau" class="plateau">
+          <div class="centre"><div class="route"></div></div>
+          <div id="pions" class="couche-pions"></div>
+        </div>
+      </div>
+      <!-- Les dés et boutons, toujours face au joueur -->
+      <div class="hud">
+        <div id="centre-titre" class="centre-titre"></div>
+        <div class="des">
+          <div class="de" id="de1"></div>
+          <div class="de" id="de2"></div>
+        </div>
+        <div id="centre-info" class="centre-info"></div>
+        <div id="dernier-evenement" class="evenement"></div>
+        <div id="actions" class="actions"></div>
+      </div>
+      <div id="carte-tiree" class="carte-tiree hidden"></div>
+    </div>
+
+    <!-- Les joueurs, placés autour du plateau -->
+    <div class="siege" id="siege-0"></div>
+    <div class="siege" id="siege-1"></div>
+    <div class="siege" id="siege-2"></div>
+    <div class="siege" id="siege-3"></div>
+    <div class="siege" id="siege-4"></div>
+    <div class="siege" id="siege-5"></div>
+
+    <!-- Barre du bas : chat, journal, échanges -->
+    <div id="bulles" class="bulles"></div>
+    <div class="barre">
+      <button id="btn-chat" class="btn-barre" title="Voir le chat">💬<span id="badge-chat" class="badge hidden"></span></button>
+      <form id="form-chat" class="form-chat">
+        <input id="chat-texte" maxlength="300" placeholder="Message…" autocomplete="off">
+        <button class="btn rose">➤</button>
+      </form>
+      <button id="btn-journal" class="btn-barre" title="Journal de la partie">📜</button>
+      <button id="btn-echanges" class="btn-barre" title="Échanges">🤝<span id="badge-echanges" class="badge hidden"></span></button>
+    </div>
+
+    <!-- Panneau qui s'ouvre au clic (chat complet / journal / échanges) -->
+    <div id="tiroir" class="tiroir hidden">
+      <div class="tiroir-tete"><b id="tiroir-titre"></b><button class="fermer" id="tiroir-fermer">✕</button></div>
+      <div id="tiroir-chat" class="tiroir-corps"><ul id="chat" class="chat"></ul></div>
+      <div id="tiroir-journal" class="tiroir-corps"><ul id="journal" class="journal"></ul></div>
+      <div id="tiroir-echanges" class="tiroir-corps">
+        <button id="btn-nouvel-echange" class="btn violet large">➕ Proposer un échange</button>
+        <div id="liste-echanges"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FENÊTRES (modales) ============ -->
+  <div id="modale" class="modale hidden">
+    <div class="modale-boite">
+      <button class="fermer" id="modale-fermer">✕</button>
+      <div id="modale-contenu"></div>
+    </div>
+  </div>
+
+  <div id="enchere" class="modale hidden">
+    <div class="modale-boite enchere-boite">
+      <h2>🔨 Enchères !</h2>
+      <div id="enchere-case"></div>
+      <div class="enchere-montant"><span id="enchere-montant"></span><small id="enchere-meilleur"></small></div>
+      <div class="chrono"><div id="enchere-chrono"></div></div>
+      <div id="enchere-actions">
+        <div class="ligne">
+          <button class="btn bleu" data-plus="10">+10</button>
+          <button class="btn bleu" data-plus="50">+50</button>
+          <button class="btn bleu" data-plus="100">+100</button>
+        </div>
+        <div class="ligne">
+          <input id="enchere-perso" type="number" min="1" inputmode="numeric" placeholder="Montant">
+          <button id="enchere-perso-btn" class="btn vert">Miser</button>
+        </div>
+        <button id="enchere-abandon" class="btn gris large">🙅 Je me retire</button>
+      </div>
+      <p id="enchere-info" class="petit"></p>
+    </div>
+  </div>
+
+  <div id="bandeau-connexion" class="bandeau hidden">📡 Connexion perdue… reconnexion en cours</div>
+  <div id="toasts" class="toasts"></div>
+  <canvas id="confettis" class="confettis"></canvas>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

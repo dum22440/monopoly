@@ -1,0 +1,9 @@
+# Configuration pour l'hébergeur Render (mise en ligne en un clic)
+services:
+  - type: web
+    name: monopoly-promo
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
