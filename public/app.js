@@ -256,6 +256,7 @@ function construirePlateau() {
     const icone = c.type !== 'prop' ? `<div class="icone">${ICONES[c.type] || ''}</div>` : '';
     d.innerHTML = `${bande}<div class="infos">${c.type === 'coin' ? '' : icone}<div class="nom">${esc(c.nom)}</div>${prix}</div><div class="proprio hidden"></div>`;
     if (cote(c.i) === 'coin') d.classList.add('coin');
+    if (c.nom.length > 22) d.classList.add('nom-long'); // les noms très longs s'écrivent un peu plus petit
     d.onclick = () => ouvrirPropriete(c.i);
     pl.insertBefore(d, $('#pions'));
   }

@@ -54,7 +54,6 @@ module.exports = {
     marron:    ["Gildas", "Gwen"],                       // 2 noms (les moins chères)
     bleuClair: ["Hang", "Eva", "Amandine"],              // 3 noms
     rose:      ["Clément", "Théo", "Baptiste"],          // 3 noms
-    orange:    ["Sandrine", "Vincent", "Valoche"],       // 3 noms
     rouge:     ["Agathe", "Fanny", "Manon"],             // 3 noms
     jaune:     ["Alice", "Justine", "Dario"],            // 3 noms
     vert:      ["Tom", "Lucas", "Malo"],                 // 3 noms
@@ -149,9 +148,10 @@ module.exports = {
   //     { texte: "...", effet: "aller", case: 39 },
   //     → Numéros des cases : 0 = Départ, puis on compte dans le sens du jeu.
   //       1 et 3 = marron · 5 = 1re gare · 6, 8, 9 = bleu clair · 10 = prison (simple visite)
-  //       11, 13, 14 = rose · 12 = 1re compagnie · 15 = 2e gare · 16, 18, 19 = orange
+  //       11, 13, 17 = rose · 14 = 1re compagnie · 15 = 2e gare
   //       20 = parc gratuit · 21, 23, 24 = rouge · 25 = 3e gare · 26, 27, 29 = jaune
-  //       28 = 2e compagnie · 31, 32, 34 = vert · 35 = 4e gare · 37, 39 = bleu foncé
+  //       31, 32, 34 = vert · 35 = 4e gare · 38 = 2e compagnie · 37, 39 = bleu foncé
+  //       Chance : 7, 16, 22, 33 · Caisse de communauté : 2, 12, 19, 28, 36
   //
   //  ⏩ Avancer / ⏪ Reculer de quelques cases :
   //     { texte: "...", effet: "avancer", cases: 2 },
@@ -239,6 +239,6 @@ module.exports = {
     { texte: "Théo a confondu la date du partiel avec celle de la soirée. Offre-lui un café pour le consoler : paie 10 €.", effet: "argent", montant: -10 },
     { texte: "Ewen a créé un groupe WhatsApp qui envoie 400 messages par jour. Paie 10 € à chaque joueur pour qu'on te sorte du groupe.", effet: "chaqueJoueur", montant: -10 },
     { texte: "Justine a ramené un gâteau maison en amphi. Chaque joueur te donne 10 € pour avoir une part.", effet: "chaqueJoueur", montant: 10 },
-    { texte: "Valoche a encore une théorie du complot sur le planning des partiels. Va chez Valoche l'écouter jusqu'au bout.", effet: "aller", case: 19 },
+    { texte: "Valoche t'a expliqué sa théorie du complot sur le planning des partiels pendant 2h. Épuisé(e), tu recules de 2 cases.", effet: "reculer", cases: 2 },
   ],
 };

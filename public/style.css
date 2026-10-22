@@ -143,6 +143,7 @@ h1 {
   display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow-wrap: anywhere; hyphens: auto;
   text-shadow: 0 0 2px var(--case), 0 0 3px var(--case), 0 0 4px var(--case);
 }
+.case.nom-long .nom { font-size: .88em; }
 .case .prix { position: relative; z-index: 6; font-weight: 700; opacity: .85; white-space: nowrap; text-shadow: 0 0 2px var(--case), 0 0 3px var(--case); }
 .case .icone { font-size: 2.1em; line-height: 1; }
 /* Les côtés gauche/droit : la bande de couleur est sur le côté intérieur */

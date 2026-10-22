@@ -14,7 +14,6 @@ const GROUPES = {
   marron:    { couleur: '#8B4513', maison: 50 },
   bleuClair: { couleur: '#7fd8ff', maison: 50 },
   rose:      { couleur: '#ff4fb8', maison: 100 },
-  orange:    { couleur: '#ff9500', maison: 100 },
   rouge:     { couleur: '#ff2d2d', maison: 150 },
   jaune:     { couleur: '#ffe100', maison: 150 },
   vert:      { couleur: '#18c95b', maison: 200 },
@@ -35,14 +34,14 @@ const PLAN = [
   ['prop', 'bleuClair', 120, [8, 40, 100, 300, 450, 600]],
   ['prison'],
   ['prop', 'rose', 140, [10, 50, 150, 450, 625, 750]],
-  ['compagnie'],
-  ['prop', 'rose', 140, [10, 50, 150, 450, 625, 750]],
-  ['prop', 'rose', 160, [12, 60, 180, 500, 700, 900]],
-  ['gare'],
-  ['prop', 'orange', 180, [14, 70, 200, 550, 750, 950]],
   ['caisse'],
-  ['prop', 'orange', 180, [14, 70, 200, 550, 750, 950]],
-  ['prop', 'orange', 200, [16, 80, 220, 600, 800, 1000]],
+  ['prop', 'rose', 140, [10, 50, 150, 450, 625, 750]],
+  ['compagnie'],
+  ['gare'],
+  ['chance'],
+  ['prop', 'rose', 160, [12, 60, 180, 500, 700, 900]],
+  ['taxe'],
+  ['caisse'],
   ['parc'],
   ['prop', 'rouge', 220, [18, 90, 250, 700, 875, 1050]],
   ['chance'],
@@ -51,17 +50,17 @@ const PLAN = [
   ['gare'],
   ['prop', 'jaune', 260, [22, 110, 330, 800, 975, 1150]],
   ['prop', 'jaune', 260, [22, 110, 330, 800, 975, 1150]],
-  ['compagnie'],
+  ['caisse'],
   ['prop', 'jaune', 280, [24, 120, 360, 850, 1025, 1200]],
   ['allerPrison'],
   ['prop', 'vert', 300, [26, 130, 390, 900, 1100, 1275]],
   ['prop', 'vert', 300, [26, 130, 390, 900, 1100, 1275]],
-  ['caisse'],
+  ['chance'],
   ['prop', 'vert', 320, [28, 150, 450, 1000, 1200, 1400]],
   ['gare'],
-  ['chance'],
+  ['caisse'],
   ['prop', 'bleuFonce', 350, [35, 175, 500, 1100, 1300, 1500]],
-  ['taxe'],
+  ['compagnie'],
   ['prop', 'bleuFonce', 400, [50, 200, 600, 1400, 1700, 2000]],
 ];
 
@@ -80,7 +79,7 @@ const COULEURS = ['#ff3b6b', '#2ec5ff', '#ffd23f', '#3bff8f', '#b36bff', '#ff8a3
 // ---------------------------------------------------------------------
 function construirePlateau(cfg) {
   const noms = {};
-  for (const g of Object.keys(GROUPES)) noms[g] = [...cfg.proprietes[g]];
+  for (const g of Object.keys(GROUPES)) noms[g] = [...(cfg.proprietes[g] || [])];
   const gares = [...cfg.gares];
   const comp = [...cfg.compagnies];
   const cs = cfg.casesSpeciales;
@@ -117,7 +116,9 @@ function calculerLoyers(cfg, prix, officiels) {
 // Vérifie le fichier de personnalisation et renvoie la liste des erreurs (en français)
 function verifierConfig(cfg) {
   const err = [];
-  const attendu = { marron: 2, bleuClair: 3, rose: 3, orange: 3, rouge: 3, jaune: 3, vert: 3, bleuFonce: 2 };
+  // Nombre de noms attendus par couleur, d'après le plateau
+  const attendu = {};
+  for (const [type, groupe] of PLAN) if (type === 'prop') attendu[groupe] = (attendu[groupe] || 0) + 1;
   if (!cfg.proprietes) err.push('Il manque la partie "proprietes".');
   else for (const [g, n] of Object.entries(attendu)) {
     const l = cfg.proprietes[g];
