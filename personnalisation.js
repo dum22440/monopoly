@@ -214,8 +214,8 @@ module.exports = {
     { texte: "Projet de groupe chez Alice (il paraît qu'il y aura surtout de l'apéro). Rends-toi chez Alice.", effet: "aller", case: 26 },
 
     // --- Vannes sur la promo ---
-    { texte: "Louis t'a embauché(e) pour la moisson. Tu es payé(e) en patates… et en billets : reçois 100 €.", effet: "argent", montant: 100 },
-    { texte: "Ewen a codé avec Claude une appli qui gère ton budget. Elle a tout dépensé en abonnements : perds 50 €.", effet: "argent", montant: -50 },
+    { texte: "Louis s'est enfin coupé 2 cm de ses cheveux longs. Il en a assez pour une perruque, qu'il revend : tu touches ta part, reçois 100 €.", effet: "argent", montant: 100 },
+    { texte: "Ewen a encore explosé sa limite sur Claude en pleine nuit de code. « Faut payer l'abonnement, frère » : perds 50 €.", effet: "argent", montant: -50 },
     { texte: "Dario t'a proposé « un petit footing tranquille » de 25 km. Tu avances de 3 cases en rampant.", effet: "avancer", cases: 3 },
     { texte: "Agathe t'a vu(e) parler à Théo. Crise de jalousie : va directement chez Agathe t'expliquer.", effet: "aller", case: 21 },
     { texte: "Fanny a raté sa teinture : blond… orange fluo. Tu as trop rigolé, paie 20 € de shampooing déjaunissant.", effet: "argent", montant: -20 },
