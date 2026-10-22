@@ -82,10 +82,10 @@ module.exports = {
   casesSpeciales: {
     depart:      "Départ",
     prison:      "Cours de Valéria",        // la prison
-    parcGratuit: "Pause clope",             // le parc gratuit
+    parcGratuit: "Sieste d'Eva",             // le parc gratuit
     allerPrison: "Direction le cours de Valéria !",
-    impot:       { nom: "Frais d'inscription", montant: 200 },
-    taxe:        { nom: "Ticket de RU perdu", montant: 100 },
+    impot:       { nom: "Abonnement Claude d'Ewen", montant: 200 },
+    taxe:        { nom: "Teinture de Fanny", montant: 100 },
   },
 
   // ===============================================================
@@ -108,34 +108,24 @@ module.exports = {
 
     // 1) Le joueur DONNE sa propriété la plus chère à un autre joueur
     donnerUnBien: [
-      "Tu as joué une partie de beer-pong contre {joueur}, en mettant {bien} en jeu… et tu as perdu. {bien} appartient maintenant à {joueur}.",
-      "Tu t'es endormi(e) en pleine soirée : {joueur} en a profité pour te piquer {bien}.",
-      "{bien} en a eu marre de toi et a emménagé chez {joueur}. C'est pas toi, c'est {bien}.",
-      "Tu as joué à pierre-feuille-ciseaux contre {joueur}, en mettant {bien} en jeu. Tu as fait pierre, {joueur} a fait feuille : {bien} est pour {joueur}.",
       "Agathe a cru que tu draguais Théo. Pour te faire pardonner, tu offres {bien} à {joueur}.",
       "Tu as parié avec {joueur} que Dario ne finirait pas son trail, en mettant {bien} en jeu. Il a fini premier : {bien} part chez {joueur}.",
       "Ewen a codé une appli pour gérer ton patrimoine. Petit bug : {bien} a été transféré à {joueur}.",
       "Tu as échangé {bien} contre un tracteur de Lucas. Le tracteur ne démarre pas, et {bien} appartient maintenant à {joueur}.",
+      "{joueur} t'a promis le snap de Louis pour Alice en échange de {bien}. C'était un faux compte : {bien} est perdu.",
     ],
 
     // 2) Le joueur VEND sa propriété la plus chère à la banque (à moitié prix)
     vendreUnBien: [
-      "Fin de mois difficile, même les pâtes sont trop chères : tu revends {bien} à la banque pour {montant}.",
-      "Ton banquier a vu tes dépenses au bar. Saisie express : {bien} est revendu pour {montant}.",
-      "Tu as vendu {bien} sur Leboncoin pour te payer un kebab. Tu récupères {montant}.",
-      "Le CROUS a oublié de verser ta bourse. Tu brades {bien} pour {montant}.",
       "Fanny avait besoin de 12 teintures blondes en urgence. Tu revends {bien} pour {montant} pour l'aider.",
       "Le chauffe-eau de Baptiste a encore lâché. Tu vends {bien} pour {montant} pour lui en payer un neuf.",
       "Hang rentre au Vietnam et tu veux partir avec elle : tu brades {bien} pour {montant} pour payer le billet.",
       "Eva a besoin de vacances de toute urgence. Tu vends {bien} pour {montant} pour lui offrir une semaine de sommeil.",
+      "Clément doit réparer son quad (encore). Tu vends {bien} pour {montant} pour l'aider.",
     ],
 
     // 3) Le joueur DONNE de l'argent à un autre joueur
     donnerArgent: [
-      "Tu as perdu un pari stupide contre {joueur} (« t'es pas cap' »). Tu lui donnes {montant}.",
-      "{joueur} a des photos de toi en soirée. Pour qu'elles restent secrètes, tu paies {montant}.",
-      "Tu as rayé la voiture de {joueur} sur le Parking en faisant un créneau. Tu lui dois {montant}.",
-      "Tu as mangé le dernier yaourt de {joueur} dans le frigo commun. Dédommagement : {montant}.",
       "Tu as parié avec {joueur} que Manon ne parlerait pas de F1 pendant 4 heures. Elle a tenu 5 heures. Tu dois {montant} à {joueur}.",
       "Gwen a lancé un tunnel et {joueur} t'a sauvé(e) en inventant une urgence. Tu lui dois {montant}.",
       "Tu as vendu à {joueur} un « tracteur de chez Lucas ». C'était une tondeuse. Remboursement : {montant}.",
@@ -144,10 +134,6 @@ module.exports = {
 
     // 4) Le joueur PERD de l'argent (il va à la banque)
     perdreArgent: [
-      "Ton téléphone est tombé dans les toilettes du RU. Réparation : {montant}.",
-      "Contrôlé(e) dans le tram sans ticket… et en pyjama. Amende : {montant}.",
-      "Tu as commandé 4 pizzas à 3h du matin et tu ne t'en souviens pas. Tu perds {montant}.",
-      "Tu as cru à une arnaque « gagnez un iPhone ». Spoiler : pas d'iPhone. Tu perds {montant}.",
       "Tu as suivi Dario sur « un petit trail ». Ambulance et séances de kiné : {montant}.",
       "Clément t'a prêté son quad. Il est dans le fossé. Réparation : {montant}.",
       "Tu as tenté la même teinture que Fanny. Résultat : jaune poussin. Coiffeur en urgence : {montant}.",
@@ -207,68 +193,43 @@ module.exports = {
   //  CARTES CHANCE ❓
   // ---------------------------------------------------------------
   chance: [
-    { texte: "Tu t'es réveillé chez quelqu'un dont tu ne connais même pas le prénom. Walk of shame jusqu'à la case Départ.", effet: "aller", case: "Départ" },
-    { texte: "Soirée d'inté : tu as fini en caleçon sur une table du Cube. Direction le cours de Valéria !", effet: "prison" },
-    { texte: "Ton date Tinder était en fait ton chargé de TD. Recule de 3 cases, vite.", effet: "reculer", cases: 3 },
-    { texte: "Tu as vendu des photos de tes pieds sur Internet. Ça marche étonnamment bien : reçois 150 €.", effet: "argent", montant: 150 },
-    { texte: "Ton ex a liké ta story à 3h du mat'. Tu craques et tu l'invites à boire un verre : paie 50 €.", effet: "argent", montant: -50 },
-    { texte: "Tu as dragué toute la promo pendant la soirée. Chaque joueur te paie 10 € pour que tu arrêtes.", effet: "chaqueJoueur", montant: 10 },
-    { texte: "Ton coloc a entendu tes exploits de la nuit à travers le mur. Achète-lui des boules Quies : 25 € par maison, 100 € par hôtel.", effet: "reparations", parMaison: 25, parHotel: 100 },
-    { texte: "Tu cherches un coin tranquille avec ton crush : fonce à la gare la plus proche.", effet: "gareProche" },
-    { texte: "Gueule de bois XXL : file à la compagnie la plus proche chercher un Doliprane.", effet: "compagnieProche" },
-    { texte: "Ton crush t'a enfin répondu « 😏 ». Porté par l'espoir, tu avances de 2 cases.", effet: "avancer", cases: 2 },
-    { texte: "Tu as envoyé par erreur une photo très perso dans le groupe de la promo. Plus personne n'ose te regarder : carte « Libéré du cours de Valéria ».", effet: "liberation" },
-    { texte: "Panne de capotes à la pharmacie : taxi jusqu'à celle de garde, paie 15 €.", effet: "argent", montant: -15 },
-    { texte: "Louis t'invite à boire un verre. Va directement chez Louis.", effet: "aller", case: "Louis" },
-    { texte: "Projet de groupe chez Alice (il paraît qu'il y aura surtout de l'apéro). Rends-toi chez Alice.", effet: "aller", case: "Alice" },
-
-    // --- Vannes sur la promo ---
-    { texte: "Louis s'est enfin coupé 2 cm de ses cheveux longs. Il en a assez pour une perruque, qu'il revend : tu touches ta part, reçois 100 €.", effet: "argent", montant: 100 },
-    { texte: "Ewen a encore explosé sa limite sur Claude en pleine nuit de code. « Faut payer l'abonnement, frère » : perds 50 €.", effet: "argent", montant: -50 },
-    { texte: "Dario t'a proposé « un petit footing tranquille » de 25 km. Tu avances de 3 cases en rampant.", effet: "avancer", cases: 3 },
+    { texte: "Dario t'a embarqué(e) pour un « petit fractionné »… jusqu'à la case Départ. Touche ton salaire, si tu tiens encore debout.", effet: "aller", case: "Départ" },
+    { texte: "Alice cherche toujours le snap de Louis. Elle t'envoie le lui demander : va chez Louis.", effet: "aller", case: "Louis" },
     { texte: "Agathe t'a vu(e) parler à Théo. Crise de jalousie : va directement chez Agathe t'expliquer.", effet: "aller", case: "Agathe" },
-    { texte: "Fanny a raté sa teinture : blond… orange fluo. Tu as trop rigolé, paie 15 € de shampooing déjaunissant.", effet: "argent", montant: -15 },
-    { texte: "Gwen a lancé un tunnel de 40 minutes sur absolument rien. Tu t'es endormi(e) debout : recule de 3 cases.", effet: "reculer", cases: 3 },
-    { texte: "Hang a enfin trouvé un vol pas cher pour le Vietnam. Elle te paie 50 € pour arroser ses plantes.", effet: "argent", montant: 50 },
-    { texte: "Alice t'a demandé le snap de Louis pour la 15e fois. Va chez Louis lui transmettre le message.", effet: "aller", case: "Louis" },
+    { texte: "Gildas, le petit nouveau, ne trouve pas la BU. Tu l'y accompagnes.", effet: "aller", case: "BU" },
+    { texte: "Le chauffe-eau de Baptiste a encore lâché. Tu cours chez Baptiste lui prêter ta bouilloire.", effet: "aller", case: "Baptiste" },
     { texte: "Manon te parle de F1 depuis 2 heures. Tu t'enfuis à la gare la plus proche à la vitesse de Verstappen.", effet: "gareProche" },
+    { texte: "Hang a enfin trouvé un vol pour le Vietnam. Tu l'accompagnes à la gare la plus proche.", effet: "gareProche" },
+    { texte: "Ewen a encore explosé sa limite sur Claude. Va à la compagnie la plus proche lui payer son abonnement.", effet: "compagnieProche" },
+    { texte: "Gwen a lancé un tunnel de 40 minutes sur absolument rien. Tu t'es endormi(e) debout : recule de 3 cases.", effet: "reculer", cases: 3 },
     { texte: "Justine t'a raconté la dernière mission de son mari militaire, minute par minute. Garde-à-vous : direction le cours de Valéria !", effet: "prison" },
-    { texte: "Gildas est nouveau, personne ne lui a expliqué qu'on ne paie pas sa tournée le premier jour. Reçois 25 €.", effet: "argent", montant: 25 },
-    { texte: "Lucas t'a vendu un tracteur d'occasion « comme neuf ». Il tombe en panne au bout de 2 cases : recule de 2 cases.", effet: "reculer", cases: 2 },
-    { texte: "Tom a encore « oublié » de payer sa part du loyer de la coloc. Tu avances l'argent : perds 50 €.", effet: "argent", montant: -50 },
+    { texte: "Eva a une tête trop fatiguée pour aller en cours, alors vous vous faites un mot d'excuse mutuel. Carte « Libéré du cours de Valéria ».", effet: "liberation" },
+    { texte: "Clément t'a prêté son quad pour faire le tour de tes propriétés. Tout est cassé : 25 € par maison et 100 € par hôtel.", effet: "reparations", parMaison: 25, parHotel: 100 },
+    { texte: "Louis a vendu sa récolte de blé et partage les bénéfices. Reçois 50 €.", effet: "argent", montant: 50 },
+    { texte: "Louis s'est enfin coupé 2 cm de ses cheveux longs : assez pour une perruque. Tu touches ta part de la vente : reçois 150 €.", effet: "argent", montant: 150 },
+    { texte: "Ewen a encore explosé sa limite sur Claude en pleine nuit de code. « Faut payer l'abonnement, frère » : perds 15 €.", effet: "argent", montant: -15 },
+    { texte: "Tu es élu(e) chef de la coloc de Tom, Lucas et Malo. Premier acte : tu paies ta tournée, 50 € à chaque joueur.", effet: "chaqueJoueur", montant: -50 },
   ],
 
   // ---------------------------------------------------------------
   //  CARTES BDE 🎉
   // ---------------------------------------------------------------
   bde: [
-    { texte: "Tu as gagné le concours de t-shirt mouillé de la soirée BDE. Reçois 100 €.", effet: "argent", montant: 100 },
-    { texte: "C'est ton anniversaire ! Chaque joueur t'offre 10 € (et un gage).", effet: "chaqueJoueur", montant: 10 },
-    { texte: "Tu as perdu ta carte étudiante… et ton caleçon, au même endroit. Paie 50 €.", effet: "argent", montant: -50 },
-    { texte: "Ton plan d'un soir t'a remboursé le kebab de 4h du mat'. Reçois 20 €.", effet: "argent", montant: 20 },
-    { texte: "Tu as raconté les secrets de chambre de toute la promo. Paie 50 € à chaque joueur pour acheter leur silence.", effet: "chaqueJoueur", montant: -50 },
-    { texte: "Surpris en train de te bécoter dans les toilettes de la BU. Direction le cours de Valéria !", effet: "prison" },
-    { texte: "Retour de soirée à 6h du mat' : tu retombes pile sur la case Départ.", effet: "aller", case: "Départ" },
-    { texte: "Soirée « tenue légère exigée » : paie 100 € de déguisement (pour trois bouts de tissu).", effet: "argent", montant: -100 },
-    { texte: "Tu retrouves 50 € et un string qui n'est pas à toi dans ta poche. Tu gardes les deux.", effet: "argent", montant: 50 },
-    { texte: "Ton suçon est trop visible pour aller en cours. Mot d'excuse : carte « Libéré du cours de Valéria ».", effet: "liberation" },
-    { texte: "La soirée chez toi a fini en bataille de mousse géante. Le proprio réclame 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
-    { texte: "Tu revends tes capotes parfumées à la pause clope. Reçois 25 €.", effet: "argent", montant: 25 },
-    { texte: "Tu as raté le tram en matant un(e) inconnu(e) trop canon. Recule d'1 case.", effet: "reculer", cases: 1 },
-
-    // --- Vannes sur la promo ---
-    { texte: "Le chauffe-eau de Baptiste est encore en panne : il vient se doucher chez toi. Facture d'eau chaude : 50 €.", effet: "argent", montant: -50 },
-    { texte: "Eva a une tête de zombie : la promo se cotise pour lui offrir une vraie nuit de sommeil. Chaque joueur te donne 10 € pour la cagnotte.", effet: "chaqueJoueur", montant: 10 },
-    { texte: "Clément te propose un tour de quad. Tu refuses poliment : 50 € de frais d'hôpital économisés !", effet: "argent", montant: 50 },
-    { texte: "Soirée surprise à la coloc de Tom, Lucas et Malo. Le voisin a appelé le proprio : 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
-    { texte: "Malo, pharaon autoproclamé de la coloc, t'accorde une audience. Va chez Malo.", effet: "aller", case: "Malo" },
-    { texte: "Lucas a vendu un tracteur à Louis et tu as servi d'intermédiaire. Ta commission : reçois 100 €.", effet: "argent", montant: 100 },
-    { texte: "L'entreprise d'Amandine a encore rendez-vous au tribunal. Par solidarité, tu paies 50 € d'avocat.", effet: "argent", montant: -50 },
-    { texte: "Dario est arrivé à la fac en courant, avant le tram. Va chez Dario lui offrir une boisson isotonique.", effet: "aller", case: "Dario" },
-    { texte: "Théo t'a demandé de l'aider à justifier un like à Agathe. Tu préfères te cacher : direction le cours de Valéria !", effet: "prison" },
+    { texte: "Dario a couru jusqu'à la fac plus vite que le tram. Tu essaies de le suivre : avance jusqu'à la case Départ.", effet: "aller", case: "Départ" },
+    { texte: "L'appli du BDE codée par Ewen avec Claude a bugué en ta faveur. Reçois 200 €.", effet: "argent", montant: 200 },
+    { texte: "Baptiste vient prendre une douche chaude chez toi tous les soirs. Facture d'eau : paie 50 €.", effet: "argent", montant: -50 },
+    { texte: "Lucas t'a versé ta commission sur la vente d'un tracteur. Reçois 50 €.", effet: "argent", montant: 50 },
     { texte: "Tu as survécu à un tunnel de Gwen de 45 minutes sans décrocher. Pour ton courage : carte « Libéré du cours de Valéria ».", effet: "liberation" },
-    { texte: "Louis a vendu sa récolte de blé et il régale tout le monde. Reçois 50 €.", effet: "argent", montant: 50 },
-    { texte: "Justine a organisé un repas pour le retour de mission de son mari. Tu apportes le dessert : paie 15 €.", effet: "argent", montant: -15 },
-    { texte: "Manon a ENCORE parlé de F1 en plein cours. Chaque joueur te paie 10 € pour que tu la fasses taire.", effet: "chaqueJoueur", montant: 10 },
+    { texte: "Théo t'a demandé de l'aider à justifier un like auprès d'Agathe. Tu préfères te cacher : direction le cours de Valéria !", effet: "prison" },
+    { texte: "Hang t'a ramené des souvenirs du Vietnam. Tu les revends en douce : reçois 100 €.", effet: "argent", montant: 100 },
+    { texte: "Fanny a raté sa teinture et te revend sa réserve de shampooing violet. Reçois 20 €.", effet: "argent", montant: 20 },
+    { texte: "Tu as lancé la cagnotte « une vraie nuit de sommeil pour Eva ». Chaque joueur te donne 10 €.", effet: "chaqueJoueur", montant: 10 },
+    { texte: "Malo, pharaon autoproclamé de la coloc, t'accorde une part de son trésor. Reçois 100 €.", effet: "argent", montant: 100 },
+    { texte: "Clément t'a emmené(e) faire un tour de quad. Passage aux urgences : paie 100 €.", effet: "argent", montant: -100 },
+    { texte: "L'entreprise d'Amandine a encore rendez-vous au tribunal. Par solidarité, tu paies 50 € d'avocat.", effet: "argent", montant: -50 },
+    { texte: "Gildas, le nouveau, te paie un café pour que tu lui expliques qui est qui dans la promo. Reçois 25 €.", effet: "argent", montant: 25 },
+    { texte: "Soirée surprise à la coloc de Tom, Lucas et Malo. Le voisin a appelé le proprio : 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
+    { texte: "Manon a parlé de F1 pendant tout l'oral. Le prof te met un point bonus pour avoir fait semblant d'écouter : reçois 10 €.", effet: "argent", montant: 10 },
+    { texte: "Justine a reçu un colis de rations de son mari militaire. Tu revends ta part : reçois 100 €.", effet: "argent", montant: 100 },
   ],
 };
