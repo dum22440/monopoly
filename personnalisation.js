@@ -82,10 +82,10 @@ module.exports = {
   casesSpeciales: {
     depart:      "Départ",
     prison:      "Cours de Valéria",        // la prison
-    parcGratuit: "Sieste d'Eva",             // le parc gratuit
+    parcGratuit: "Pause clope",             // le parc gratuit
     allerPrison: "Direction le cours de Valéria !",
-    impot:       { nom: "Abonnement Claude d'Ewen", montant: 200 },
-    taxe:        { nom: "Teinture de Fanny", montant: 100 },
+    impot:       { nom: "Frais d'inscription", montant: 200 },
+    taxe:        { nom: "Ticket de RU perdu", montant: 100 },
   },
 
   // ===============================================================
