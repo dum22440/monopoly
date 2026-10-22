@@ -146,6 +146,16 @@ module.exports = {
     { texte: "Panne de capotes à la pharmacie : taxi jusqu'à celle de garde, paie 20 €.", effet: "argent", montant: -20 },
     { texte: "Louis t'invite à boire un verre. Va directement chez Louis.", effet: "aller", case: 39 },
     { texte: "Projet de groupe chez Alice (il paraît qu'il y aura surtout de l'apéro). Rends-toi chez Alice.", effet: "aller", case: 26 },
+
+    // --- Vannes sur la promo (remplace-les par vos vraies anecdotes !) ---
+    { texte: "Dario a encore 20 minutes de retard « à cause du tram ». Va l'attendre chez Dario.", effet: "aller", case: 29 },
+    { texte: "Tom a « oublié » son porte-monnaie au RU pour la 12e fois. Tu lui paies son plateau : 15 €.", effet: "argent", montant: -15 },
+    { texte: "Clément t'a spoilé la fin de ta série en plein amphi. Dommages et intérêts : reçois 50 €.", effet: "argent", montant: 50 },
+    { texte: "Manon a squatté toutes les tables de la BU avec ses fiches fluo. Va réviser à la gare la plus proche.", effet: "gareProche" },
+    { texte: "Lucas a ronflé pendant tout le CM. Chaque joueur te paie 10 € pour que tu gardes la vidéo secrète.", effet: "chaqueJoueur", montant: 10 },
+    { texte: "Hang a lancé un débat de 45 minutes sur l'ananas dans la pizza. Tu fuis : recule d'1 case.", effet: "reculer", cases: 1 },
+    { texte: "Gildas t'a ENCORE demandé de lui envoyer le cours. Va chez Gildas lui apporter tes notes.", effet: "aller", case: 1 },
+    { texte: "Vincent a bloqué l'imprimante de la BU avec 300 pages de mèmes. Paie 15 € de photocopies.", effet: "argent", montant: -15 },
   ],
 
   // ---------------------------------------------------------------
@@ -165,5 +175,19 @@ module.exports = {
     { texte: "La soirée chez toi a fini en bataille de mousse géante. Le proprio réclame 40 € par maison et 115 € par hôtel.", effet: "reparations", parMaison: 40, parHotel: 115 },
     { texte: "Tu revends tes capotes parfumées à la pause clope. Reçois 25 €.", effet: "argent", montant: 25 },
     { texte: "Tu as raté le tram en matant un(e) inconnu(e) trop canon. Recule d'1 case.", effet: "reculer", cases: 1 },
+
+    // --- Vannes sur la promo (remplace-les par vos vraies anecdotes !) ---
+    { texte: "Baptiste t'a emprunté ton chargeur… en septembre. Paie 20 € pour en racheter un.", effet: "argent", montant: -20 },
+    { texte: "Eva a fait les fiches de révision pour toute la promo. Va dire merci chez Eva.", effet: "aller", case: 8 },
+    { texte: "Amandine a répondu à la question du prof avant même qu'il la pose. Motivé(e), tu avances de 2 cases.", effet: "avancer", cases: 2 },
+    { texte: "Gwen a lancé un apéro surprise. Va directement chez Gwen.", effet: "aller", case: 3 },
+    { texte: "Fanny a organisé la soirée de l'année. Le voisin a moins aimé : paie 30 € d'amende pour tapage.", effet: "argent", montant: -30 },
+    { texte: "Malo a négocié un point bonus pour toute la promo (personne ne sait comment). Reçois 50 €.", effet: "argent", montant: 50 },
+    { texte: "Sandrine n'a pas rendu le devoir et c'est toi qui t'es fait prendre. Direction le cours de Valéria !", effet: "prison" },
+    { texte: "Agathe t'a fait gagner le blind test du BDE. Reçois 40 €.", effet: "argent", montant: 40 },
+    { texte: "Théo a confondu la date du partiel avec celle de la soirée. Offre-lui un café pour le consoler : paie 10 €.", effet: "argent", montant: -10 },
+    { texte: "Ewen a créé un groupe WhatsApp qui envoie 400 messages par jour. Paie 10 € à chaque joueur pour qu'on te sorte du groupe.", effet: "chaqueJoueur", montant: -10 },
+    { texte: "Justine a ramené un gâteau maison en amphi. Chaque joueur te donne 10 € pour avoir une part.", effet: "chaqueJoueur", montant: 10 },
+    { texte: "Valoche a encore une théorie du complot sur le planning des partiels. Va chez Valoche l'écouter jusqu'au bout.", effet: "aller", case: 19 },
   ],
 };
