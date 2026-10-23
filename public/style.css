@@ -305,7 +305,8 @@ h1 {
 .joueur.actuel .avatar { animation: tour 1.4s ease-in-out infinite; }
 .joueur.actuel .somme { box-shadow: 0 4px 0 rgba(0,0,0,.3), 0 0 22px var(--couleur); }
 .joueur.faillite { opacity: .4; filter: grayscale(1); }
-.mini-prop { display: inline-block; width: 11px; height: 15px; border-radius: 3px; cursor: pointer; border: 1px solid rgba(255,255,255,.4); }
+.joueur, .siege .details { cursor: pointer; }
+.mini-prop { display: inline-block; width: 15px; height: 20px; border-radius: 3px; cursor: pointer; border: 1px solid rgba(255,255,255,.4); }
 .mini-prop.hyp { opacity: .35; }
 .hors-ligne { color: #ff8fa3; }
 .flottant {

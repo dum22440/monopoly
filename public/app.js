@@ -436,15 +436,18 @@ function dessinerJoueurs(ancien) {
         p.connecte ? '' : '<span class="hors-ligne">📴 déconnecté</span>', p.dette ? `⚠️ doit ${argent(p.dette.montant)}` : ''].filter(Boolean).join(' · ');
     const exclure = hote && !p.connecte && !p.faillite && p.id !== moi && etat.phase === 'jeu'
       ? `<button class="btn rouge petit" data-exclure="${p.id}">Retirer</button>` : '';
+    const terrains = etat.plateau.filter((c) => etat.proprietes[c.i] && etat.proprietes[c.i].proprio === p.id)
+      .map((c) => `<span class="mini-prop ${etat.proprietes[c.i].hypotheque ? 'hyp' : ''}" title="${esc(c.nom)}"
+        style="background:${c.couleur || (c.type === 'gare' ? '#555' : '#ccc')}"></span>`).join('');
     $('#siege-' + SIEGES[n][rang]).innerHTML = `
-      <div class="joueur ${etat.tour && etat.tour.joueurId === p.id ? 'actuel' : ''} ${p.faillite ? 'faillite' : ''}" style="--couleur:${p.couleur}" id="carte-${p.id}">
+      <div class="joueur ${etat.tour && etat.tour.joueurId === p.id ? 'actuel' : ''} ${p.faillite ? 'faillite' : ''}" style="--couleur:${p.couleur}" id="carte-${p.id}" data-voir="${p.id}" title="Voir ses terrains">
         <div class="avatar">${p.pion}</div>
         <div class="infos-j">
           <div class="bandeau-nom">${esc(p.nom)}${p.id === etat.hoteId || (p.membres || []).some((x) => x.id === etat.hoteId) ? ' 👑' : ''}${p.id === moi ? ' (toi)' : ''}</div>
           <div class="somme">${argent(p.argent)}</div>
         </div>
       </div>
-      ${statut || exclure ? `<div class="details">${statut} ${exclure}</div>` : ''}`;
+      ${statut || exclure || terrains ? `<div class="details" data-voir="${p.id}">${terrains}${terrains && (statut || exclure) ? ' ' : ''}${statut} ${exclure}</div>` : ''}`;
   });
   // Petite animation "+200 €" / "-50 €"
   if (ancien && ancien.phase !== 'salon') for (const p of etat.joueurs) {
@@ -453,7 +456,7 @@ function dessinerJoueurs(ancien) {
     const diff = p.argent - avant.argent;
     const f = document.createElement('div');
     f.className = 'flottant ' + (diff > 0 ? 'plus' : 'moins');
-    f.textContent = (diff > 0 ? '+' : '') + diff;
+    f.textContent = (diff > 0 ? '+' : '−') + argent(Math.abs(diff));
     $('#carte-' + p.id).appendChild(f);
   }
 }
@@ -461,6 +464,7 @@ for (let k = 0; k < 8; k++) $('#siege-' + k).onclick = (e) => {
   const mp = e.target.closest('[data-case]');
   if (mp) return ouvrirPropriete(+mp.dataset.case);
   const ex = e.target.closest('[data-exclure]');
+  if (!ex && e.target.closest('[data-voir]')) return ouvrirTerrains(e.target.closest('[data-voir]').dataset.voir);
   if (ex && confirm(`Retirer ${joueur(ex.dataset.exclure).nom} de la partie ? Ses propriétés retourneront à la banque.`))
     envoyer('exclure', { joueurId: ex.dataset.exclure });
 };
@@ -651,23 +655,31 @@ function htmlPropriete(i, avecTitre = true) {
 function ouvrirPropriete(i) {
   ouvrirModale(() => { $('#modale-contenu').innerHTML = htmlPropriete(i); });
 }
-function ouvrirGestion() {
+function ouvrirGestion() { ouvrirTerrains(moi); }
+
+// Liste des terrains d'un joueur (les miens, ou ceux d'un autre en touchant sa fiche)
+function ouvrirTerrains(id) {
   ouvrirModale(() => {
-    const mes = etat.plateau.filter((c) => etat.proprietes[c.i] && etat.proprietes[c.i].proprio === moi);
-    $('#modale-contenu').innerHTML = `<h2>🏠 Mes propriétés</h2>` + (mes.length
-      ? `<p class="petit">Touche une propriété pour construire, vendre ou hypothéquer.</p><div class="selection-props">${mes.map((c) => {
+    const p = joueur(id);
+    if (!p) return fermerModale();
+    const siens = etat.plateau.filter((c) => etat.proprietes[c.i] && etat.proprietes[c.i].proprio === id);
+    const cartes = p.cartesLiberation ? `<p class="petit">🔑 ${p.cartesLiberation} carte${p.cartesLiberation > 1 ? 's' : ''} « Libéré du ${esc(etat.plateau[10].nom)} »</p>` : '';
+    const membres = p.membres ? `<p class="petit">👥 ${p.membres.map((m) => `${m.pion} ${esc(m.nom)}`).join(' · ')}</p>` : '';
+    $('#modale-contenu').innerHTML = `<h2 data-liste-terrains>${id === moi ? '🏠 Mes terrains' : `${p.pion} Terrains de ${esc(p.nom)}`}</h2>
+      <p style="text-align:center;margin:0"><b>${argent(p.argent)}</b> · ${siens.length} terrain${siens.length > 1 ? 's' : ''}</p>${membres}${cartes}` + (siens.length
+      ? `${id === moi ? '<p class="petit">Touche un terrain pour construire, vendre ou hypothéquer.</p>' : ''}<div class="selection-props">${siens.map((c) => {
         const pr = etat.proprietes[c.i];
         return `<label data-case="${c.i}"><span class="pastille" style="background:${c.couleur || '#888'}"></span>${esc(c.nom)}
-          <span style="margin-left:auto">${pr.maisons === 5 ? '🏨' : '🏠'.repeat(pr.maisons)}${pr.hypotheque ? ' 🏦' : ''}</span></label>`;
+          <span style="margin-left:auto">${pr.maisons === 5 ? '🏨' : '🏠'.repeat(pr.maisons)}${pr.hypotheque ? ' 🏦 hypothéqué' : ''}</span></label>`;
       }).join('')}</div>`
-      : '<p class="petit">Tu n\'as encore aucune propriété.</p>');
+      : `<p class="petit">${id === moi ? "Tu n'as" : "N'a"} encore aucun terrain.</p>`);
   });
 }
 $('#modale-contenu').onclick = (e) => {
   const g = e.target.closest('button[data-g]');
   if (g && !g.disabled) return envoyer(g.dataset.g, { case: +g.dataset.case });
   const l = e.target.closest('label[data-case]');
-  if (l && !e.target.closest('input') && $('#modale-contenu h2')?.textContent.includes('Mes propriétés')) ouvrirPropriete(+l.dataset.case);
+  if (l && !e.target.closest('input') && $('#modale-contenu [data-liste-terrains]')) ouvrirPropriete(+l.dataset.case);
 };
 
 // ---------------------------------------------------------------------
