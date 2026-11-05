@@ -5,7 +5,7 @@ const config = require('../personnalisation');
 
 const hasard = (n) => Math.floor(Math.random() * n);
 const pick = (t) => t[hasard(t.length)];
-let actionsOk = 0, refus = 0, finies = 0, malchances = 0;
+let actionsOk = 0, refus = 0, finies = 0, malchances = 0, autos = 0, restaurations = 0;
 
 function verifier(g) {
   let maisons = 0, hotels = 0;
@@ -42,7 +42,7 @@ function essayer(g, id, a) {
 
 let partiesEquipes = 0;
 function partie(nbJoueurs, encheres, equipes) {
-  const g = new Partie('TEST', { ...config, encheres }, () => {});
+  let g = new Partie('TEST', { ...config, encheres }, () => {});
   const ids = [];
   if (equipes) g.action(g.ajouterJoueur('Robot0').id, { type: 'equipes', actif: true });
   for (let k = equipes ? 1 : 0; k < nbJoueurs; k++) ids.push(g.ajouterJoueur('Robot' + k).id);
@@ -56,6 +56,21 @@ function partie(nbJoueurs, encheres, equipes) {
   // En équipe, c'est un membre au hasard qui clique pour son équipe
   const qui = (p) => (p.membres ? pick(p.membres) : p.id);
   for (let pas = 0; pas < 4000 && g.phase === 'jeu'; pas++) {
+    // De temps en temps : un joueur se déconnecte ou revient
+    if (Math.random() < 0.02) { const x = pick(g.joueurs); x.connecte = !x.connecte; }
+    // De temps en temps : le chrono expire et le jeu joue à la place du joueur
+    if (Math.random() < 0.05) {
+      const d = g.decisionEnAttente();
+      if (d) { try { g.jouerAuto(d); actionsOk++; } catch (e) { refus++; } g.enchainer(); verifier(g); autos++; continue; }
+    }
+    // De temps en temps : le serveur redémarre et la partie est restaurée depuis la sauvegarde
+    if (pas % 500 === 499) {
+      if (g.enchere) clearTimeout(g.enchere.timer);
+      const copie = JSON.parse(JSON.stringify(g.sauvegarde()));
+      g = Partie.restaurer(copie, { ...config, encheres }, () => {});
+      for (const x of g.joueurs) x.connecte = true;
+      verifier(g); restaurations++;
+    }
     // Une carte est affichée : le joueur clique sur OK (parfois un autre essaie avant lui)
     if (g.messages.length) {
       const m = g.messages[0];
@@ -107,5 +122,6 @@ for (let k = 0; k < N; k++) {
   else partie(2 + (k % 7), k % 2 === 0, false);
 }
 console.log(`✅ ${N} parties jouées par des robots (dont ${partiesEquipes} en équipes), ${finies} terminées par une victoire, ${malchances} malchances déclenchées.`);
+console.log(`   ${autos} coups joués automatiquement (chrono ou joueur absent), ${restaurations} parties restaurées après un redémarrage.`);
 console.log(`   ${actionsOk} actions acceptées, ${refus} actions interdites correctement refusées. Aucune règle violée.`);
 process.exit(0);

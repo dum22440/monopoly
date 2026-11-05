@@ -115,9 +115,28 @@ function lirePseudo() {
   memoire.ecrire('monopoly-pseudo', nom);
   return nom;
 }
-function rejoindre(donnees) {
+// Sauvegardes chiffrées des parties (envoyées par le serveur, gardées dans ce navigateur)
+function lireSauvegarde(code) { return (memoire.lire('monopoly-sauvegardes', {})[code] || {}).donnees; }
+socket.on('sauvegarde', ({ code, donnees, t }) => {
+  const toutes = memoire.lire('monopoly-sauvegardes', {});
+  toutes[code] = { donnees, t };
+  // on ne garde que les 5 parties les plus récentes
+  for (const vieux of Object.keys(toutes).sort((a, b) => toutes[b].t - toutes[a].t).slice(5)) delete toutes[vieux];
+  memoire.ecrire('monopoly-sauvegardes', toutes);
+});
+
+function rejoindre(donnees, dejaRestauree = false) {
   $('#erreur-accueil').textContent = '';
   socket.emit('rejoindre', donnees, (r) => {
+    // Le serveur a redémarré et ne connaît plus la partie : on lui renvoie notre sauvegarde
+    const sauvegarde = r && r.inconnue && !dejaRestauree && lireSauvegarde(String(donnees.code).toUpperCase());
+    if (sauvegarde) {
+      socket.emit('restaurer', { donnees: sauvegarde }, (res) => {
+        if (res && res.ok) { toast('💾 Partie retrouvée, elle reprend où elle s\'était arrêtée !'); rejoindre(donnees, true); }
+        else { $('#erreur-accueil').textContent = (res && res.erreur) || r.erreur; }
+      });
+      return;
+    }
     if (r && r.erreur) {
       $('#erreur-accueil').textContent = r.erreur;
       if (donnees.jeton) { oublierSession(donnees.code, donnees.jeton); afficherEcran('accueil'); }
@@ -169,9 +188,11 @@ socket.on('erreur', (msg) => {
 // Chaque nouvel état est traité dans l'ordre, après la fin des animations précédentes
 socket.on('etat', (s) => { fileEtats = fileEtats.then(() => traiterEtat(s)).catch(console.error); });
 
+let finChrono = 0;
 async function traiterEtat(s) {
   const ancien = etat;
   etat = s;
+  finChrono = s.chrono ? Date.now() + s.chrono.resteMs : 0;
   moi = (s.membres && s.membres[moiHumain]) || moiHumain;
   if (s.phase === 'salon') { afficherEcran('salon'); dessinerSalon(); return; }
   afficherEcran('jeu');
@@ -869,6 +890,18 @@ function ajouterMessage(m, notifier = true) {
   $('#badge-chat').classList.remove('hidden');
 }
 socket.on('chat', (m) => ajouterMessage(m));
+
+// Compte à rebours du chrono (temps restant avant que le jeu joue à la place du joueur)
+setInterval(() => {
+  const el = $('#chrono');
+  const ch = etat && etat.phase === 'jeu' && etat.chrono;
+  if (!ch || animationEnCours) { el.classList.add('hidden'); return; }
+  const qui = joueur(ch.joueurId);
+  const reste = Math.max(0, Math.ceil((finChrono - Date.now()) / 1000));
+  el.classList.remove('hidden');
+  el.classList.toggle('urgent', reste <= 10);
+  el.textContent = qui && !qui.connecte ? `📴 Connexion perdue pour ${qui.nom} : le jeu joue à sa place dans ${reste} s` : `⏱️ ${reste} s`;
+}, 250);
 $('#form-chat').onsubmit = (e) => {
   e.preventDefault();
   const t = $('#chat-texte').value.trim();

@@ -84,7 +84,8 @@ Tes amis cliquent dessus, tapent leur pseudo, et c'est parti !
 
 ### Bon à savoir sur la version gratuite
 - Après **15 minutes sans aucun joueur**, Render met le serveur en veille. La visite suivante le réveille, mais ça prend environ **1 minute**. C'est normal, il suffit d'attendre.
-- Quand le serveur s'endort ou redémarre, **les parties en cours sont effacées**. Tant que vous jouez, il reste éveillé.
+- **Les parties ne sont plus perdues** : chaque navigateur garde une copie chiffrée de la partie. Si le serveur s'est endormi ou a redémarré, il suffit de rouvrir le lien de la partie : elle reprend exactement où elle en était.
+- Cette sauvegarde utilise une clé secrète, `SECRET_SAUVEGARDE`, que Render crée tout seul grâce au fichier `render.yaml`. Si ton service a été créé à la main (sans le lien « Deploy to Render »), ajoute-la toi-même : sur Render, onglet **Environment** → **Add Environment Variable** → nom `SECRET_SAUVEGARDE`, valeur : une longue suite de lettres et de chiffres au hasard.
 
 ### Modifier les noms une fois en ligne
 Sur GitHub, ouvre `personnalisation.js`, clique sur le **crayon ✏️**, fais tes changements, puis clique sur **Commit changes**.
@@ -99,5 +100,6 @@ Render redémarre tout seul avec les nouveaux noms en 2 à 3 minutes.
 - Prix et loyers du vrai Monopoly (loyers doublés quand on a toute la couleur). Option loyers plus doux dans `personnalisation.js` (`coefficientsLoyers`).
 - Gares, compagnies, prison (3 essais pour faire un double, sortie à 50, carte de libération), double = rejouer, 3 doubles = prison.
 - 💥 **Cases MALCHANCE invisibles** : quelques cases piégées au hasard (elles changent de place après chaque piège). Punition tirée au sort : donner un bien, le revendre, donner de l'argent ou en perdre. Blagues et réglages dans `personnalisation.js`, partie `malchance`.
+- ⏱️ **Chrono** : 60 secondes pour lancer, acheter ou lire une carte, sinon le jeu joue à ta place (réglable avec `chronoTour`, 0 = pas de chrono). Un joueur déconnecté est joué automatiquement au bout de 8 secondes.
 - Hypothèques (+10 % pour lever), dettes et faillite, échanges entre joueurs (bouton 🤝).
 - Options dans `personnalisation.js` : enchères quand on refuse d'acheter (`encheres`), cagnotte du parc gratuit (`cagnotteParcGratuit`).

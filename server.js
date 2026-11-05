@@ -5,6 +5,8 @@
 // =====================================================================
 
 const path = require('path');
+const fs = require('fs');
+const zlib = require('zlib');
 const crypto = require('crypto');
 const express = require('express');
 const http = require('http');
@@ -48,9 +50,52 @@ function nouveauCode() {
   return code;
 }
 
-// Envoie l'état à jour de la partie à tous ses joueurs
+// ---------------------------------------------------------------------
+//  Sauvegarde des parties
+//  Le serveur gratuit s'endort ou redémarre parfois, et les parties en mémoire
+//  disparaissent. Pour les retrouver, chaque joueur garde dans son navigateur une
+//  copie CHIFFRÉE de la partie : personne ne peut la lire ni la modifier (pas de
+//  triche possible), et le premier joueur qui revient la renvoie au serveur.
+// ---------------------------------------------------------------------
+function secretSauvegarde() {
+  if (process.env.SECRET_SAUVEGARDE) return process.env.SECRET_SAUVEGARDE; // sur Render (réglage automatique)
+  const fichier = path.join(__dirname, '.secret-sauvegarde');                // sur ton ordinateur
+  try { return fs.readFileSync(fichier, 'utf8').trim(); } catch (e) {
+    const s = crypto.randomBytes(32).toString('hex');
+    try { fs.writeFileSync(fichier, s); } catch (e2) { /* pas grave : sauvegardes valables jusqu'au redémarrage */ }
+    return s;
+  }
+}
+const CLE = crypto.createHash('sha256').update(secretSauvegarde()).digest();
+
+function chiffrer(donnees) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', CLE, iv);
+  const corps = Buffer.concat([c.update(zlib.deflateSync(JSON.stringify(donnees))), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), corps]).toString('base64');
+}
+function dechiffrer(texte) {
+  const b = Buffer.from(String(texte), 'base64');
+  const d = crypto.createDecipheriv('aes-256-gcm', CLE, b.subarray(0, 12));
+  d.setAuthTag(b.subarray(12, 28));
+  return JSON.parse(zlib.inflateSync(Buffer.concat([d.update(b.subarray(28)), d.final()])));
+}
+
+// Envoie la sauvegarde aux joueurs, au plus une fois toutes les 2 secondes
+function envoyerSauvegarde(partie) {
+  if (partie.phase !== 'jeu' || partie.attenteSauvegarde) return;
+  partie.attenteSauvegarde = setTimeout(() => {
+    partie.attenteSauvegarde = null;
+    if (parties.get(partie.code) !== partie) return;
+    io.to(partie.code).emit('sauvegarde', { code: partie.code, donnees: chiffrer(partie.sauvegarde()), t: Date.now() });
+  }, 2000);
+}
+
+// Envoie l'état à jour de la partie à tous ses joueurs (et relance le chrono)
 function diffuser(partie) {
+  partie.planifier();
   io.to(partie.code).emit('etat', partie.etatPublic());
+  envoyerSauvegarde(partie);
 }
 
 // Associe une connexion (un onglet) à un joueur
@@ -94,7 +139,7 @@ io.on('connection', (socket) => {
   socket.on('rejoindre', ({ code, nom, pion, jeton } = {}, cb) => {
     try {
       const partie = parties.get(String(code || '').toUpperCase().trim());
-      if (!partie) throw new Error("Cette partie n'existe pas (ou plus). Vérifie le code !");
+      if (!partie) return repondre(cb, { erreur: "Cette partie n'existe pas (ou plus). Vérifie le code !", inconnue: true });
       let joueur = jeton && partie.humains.find((p) => p.jeton === jeton);
       if (joueur) {
         partie.log(`🔌 ${joueur.nom} est de retour !`);
@@ -107,6 +152,22 @@ io.on('connection', (socket) => {
       repondre(cb, { ok: true });
     } catch (e) {
       repondre(cb, { erreur: e.message });
+    }
+  });
+
+  // Un joueur renvoie la sauvegarde d'une partie que le serveur a oubliée (redémarrage)
+  socket.on('restaurer', ({ donnees } = {}, cb) => {
+    try {
+      if (typeof donnees !== 'string' || donnees.length > 3_000_000) throw new Error('Sauvegarde invalide.');
+      const d = dechiffrer(donnees);
+      if (!parties.has(d.code)) {
+        const partie = Partie.restaurer(d, config, () => diffuser(partie));
+        parties.set(d.code, partie);
+        console.log(`Partie ${d.code} restaurée depuis une sauvegarde`);
+      }
+      repondre(cb, { ok: true });
+    } catch (e) {
+      repondre(cb, { erreur: 'Impossible de restaurer cette partie (' + e.message + ').' });
     }
   });
 
@@ -168,6 +229,7 @@ setInterval(() => {
     const quelquUn = p.humains.some((j) => j.connecte);
     if (!quelquUn && p.derniereActivite < limite) {
       if (p.enchere) clearTimeout(p.enchere.timer);
+      if (p.chrono) clearTimeout(p.chrono.timer);
       parties.delete(code);
     }
   }

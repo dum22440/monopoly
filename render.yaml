@@ -7,3 +7,7 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /
+    envVars:
+      # Clé secrète qui chiffre les sauvegardes des parties (créée automatiquement par Render)
+      - key: SECRET_SAUVEGARDE
+        generateValue: true

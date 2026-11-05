@@ -44,6 +44,11 @@ module.exports = {
   // true  = tout le monde peut l'acheter aux enchères
   encheres: false,
 
+  // Temps (en secondes) pour lancer les dés, acheter ou lire une carte.
+  // Passé ce délai, le jeu joue à la place du joueur (il lance, n'achète pas, ferme la carte).
+  // 0 = pas de chrono. Un joueur déconnecté est de toute façon joué automatiquement.
+  chronoTour: 60,
+
   // ---------------------------------------------------------------
   //  LOYERS : ce sont ceux du vrai Monopoly.
   //  Pour des loyers plus doux, enlève les // devant la ligne ci-dessous

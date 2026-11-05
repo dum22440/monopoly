@@ -70,7 +70,8 @@ const AMENDE_PRISON = 50;
 const LOYERS_GARE = [0, 25, 50, 100, 200];
 const MAISONS_DISPO = 32;
 const HOTELS_DISPO = 12;
-const DUREE_ENCHERE = 12000; // ms sans nouvelle offre avant adjudication
+const DUREE_ENCHERE = 12000;
+const DELAI_ABSENT = 8000; // un joueur déconnecté est joué automatiquement après 8 s // ms sans nouvelle offre avant adjudication
 
 const PIONS = ['🏎️', '🏍️', '🐆', '🐸', '🚗', '🎩', '🐶', '🚀', '🦄', '🍕', '👟', '🐱', '⚽', '🎸', '👑', '🦖'];
 const MAX_JOUEURS = 8;          // en solo
@@ -202,6 +203,11 @@ function trouverCase(plateau, cible) {
   return plateau.findIndex((c) => c.nom.toLowerCase() === n);
 }
 
+// Ce que contient une sauvegarde de partie
+const CHAMPS_SAUVEGARDE = ['code', 'phase', 'humains', 'modeEquipes', 'membres', 'hoteId', 'proprietes', 'paquets', 'tour',
+  'echanges', 'journal', 'chat', 'messages', 'messageSeq', 'desSeq', 'cagnotte', 'maisonsDispo', 'hotelsDispo', 'gagnant',
+  'casesMalchance', 'derniereMalchance', 'dernierCoup'];
+
 const melanger = (t) => {
   for (let i = t.length - 1; i > 0; i--) {
     const j = crypto.randomInt(i + 1);
@@ -253,6 +259,97 @@ class Partie {
     const nbMalchance = cfg.malchance ? Math.max(0, Math.min(10, cfg.malchance.nombreDeCases | 0)) : 0;
     for (let k = 0; k < nbMalchance; k++) this.placerMalchance();
     this.derniereActivite = Date.now();
+  }
+
+  // ------------------------------------------------------------- sauvegarde
+  // Tout ce qu'il faut pour reprendre une partie après un redémarrage du serveur
+  // (le plateau et les réglages sont reconstruits depuis personnalisation.js).
+  sauvegarde() {
+    const d = { version: 1 };
+    for (const k of CHAMPS_SAUVEGARDE) d[k] = this[k];
+    if (this.modeEquipes) d.joueurs = this.joueurs;
+    if (this.enchere) d.enchere = { ...this.enchere, timer: null };
+    return d;
+  }
+
+  static restaurer(d, cfg, onChange) {
+    const g = new Partie(d.code, cfg, onChange);
+    if (Object.keys(d.proprietes).length !== Object.keys(g.proprietes).length) throw new Error('Le plateau a changé depuis cette partie.');
+    for (const k of CHAMPS_SAUVEGARDE) if (d[k] !== undefined) g[k] = d[k];
+    g.joueurs = g.modeEquipes ? d.joueurs : g.humains;
+    for (const h of g.humains) h.connecte = false;
+    for (const p of g.joueurs) p.connecte = false;
+    g.enchere = d.enchere || null;
+    if (g.enchere) g.programmerFinEnchere();
+    g.log('💾 Partie restaurée après un redémarrage du serveur.');
+    return g;
+  }
+
+  // ------------------------------------------------------------- chrono
+  // La décision qu'on attend en ce moment, et de qui (null = rien à attendre)
+  decisionEnAttente() {
+    if (this.phase !== 'jeu' || this.enchere) return null;
+    if (this.messages.length) {
+      const a = this.j(this.messages[0].joueurId);
+      return a && !a.faillite ? { type: 'lu', acteur: a } : null;
+    }
+    const endette = this.joueurs.find((x) => x.dette && !x.faillite);
+    if (endette) return endette.connecte ? null : { type: 'liquider', acteur: endette }; // on laisse réfléchir un joueur présent
+    const p = this.courant();
+    if (!p || p.faillite) return null;
+    if (this.tour.etape === 'acheter') return { type: 'refuser', acteur: p };
+    if (this.tour.etape === 'lancer') return { type: 'lancer', acteur: p };
+    return null;
+  }
+
+  // Lance (ou garde) le compte à rebours de la décision en attente
+  planifier() {
+    const dec = this.decisionEnAttente();
+    const cle = dec && [dec.type, dec.acteur.id, dec.acteur.connecte, this.desSeq, this.messages.length && this.messages[0].seq].join('|');
+    if (this.chrono && this.chrono.cle === cle) return;
+    if (this.chrono) clearTimeout(this.chrono.timer);
+    this.chrono = null;
+    const secondes = Number(this.cfg.chronoTour) || 0;
+    if (!dec || (dec.acteur.connecte && secondes <= 0)) return;
+    const delai = dec.acteur.connecte ? secondes * 1000 : DELAI_ABSENT;
+    this.chrono = {
+      cle, joueurId: dec.acteur.id, fin: Date.now() + delai,
+      timer: setTimeout(() => {
+        this.chrono = null;
+        try { this.jouerAuto(dec); } catch (e) { /* la situation a changé entre-temps */ }
+        this.enchainer();
+        this.onChange();
+      }, delai),
+    };
+  }
+
+  // Le jeu joue à la place d'un joueur trop lent ou déconnecté
+  jouerAuto(dec) {
+    const p = this.j(dec.acteur.id);
+    if (!p || p.faillite) return;
+    this.log(`⏱️ ${p.connecte ? 'Temps écoulé' : 'Joueur absent'} : le jeu joue pour ${p.nom}.`);
+    if (dec.type === 'lu') return this.lu(p, this.messages[0].seq);
+    if (dec.type === 'refuser') return this.refuserAchat(p);
+    if (dec.type === 'lancer') return this.lancer(p);
+    if (dec.type === 'liquider') return this.liquider(p);
+  }
+
+  // Joueur absent avec une dette : on vend ses maisons et on hypothèque jusqu'à pouvoir payer
+  liquider(p) {
+    for (let garde = 0; garde < 200 && p.dette && p.argent < p.dette.montant; garde++) {
+      const siens = Object.keys(this.proprietes).map(Number).filter((i) => this.proprietes[i].proprio === p.id);
+      const avecMaisons = siens.filter((i) => this.proprietes[i].maisons > 0)
+        .sort((a, b) => this.proprietes[b].maisons - this.proprietes[a].maisons);
+      if (avecMaisons.length) {
+        try { this.vendreMaison(p, avecMaisons[0]); continue; } catch (e) { /* plus de maisons à la banque : on hypothèque */ }
+      }
+      const aHypothequer = siens.find((i) => !this.proprietes[i].hypotheque
+        && !(this.plateau[i].groupe && this.casesDuGroupe(this.plateau[i].groupe).some((x) => this.proprietes[x.i].maisons > 0)));
+      if (aHypothequer === undefined) break;
+      this.hypothequer(p, aHypothequer);
+    }
+    if (p.dette && p.argent >= p.dette.montant) this.payerDette(p);
+    else if (p.dette) this.declarerFaillite(p);
   }
 
   // ------------------------------------------------------------- outils
@@ -798,6 +895,7 @@ class Partie {
 
   terminer(gagnant) {
     this.phase = 'fin';
+    if (this.chrono) { clearTimeout(this.chrono.timer); this.chrono = null; }
     this.messages = [];
     this.gagnant = gagnant.id;
     this.tour = null;
@@ -1124,6 +1222,7 @@ class Partie {
       echanges: this.echanges,
       journal: this.journal.slice(-40),
       messages: this.messages,
+      chrono: this.chrono ? { joueurId: this.chrono.joueurId, resteMs: Math.max(0, this.chrono.fin - Date.now()) } : null,
       dernierCoup: this.dernierCoup || null,
       encheres: !!this.cfg.encheres,
       cagnotte: this.cfg.cagnotteParcGratuit ? this.cagnotte : null,

@@ -402,6 +402,10 @@ select { font-family: inherit; font-size: 16px; padding: 10px; border-radius: 10
 .victoire { text-align: center; font-size: 22px; }
 .victoire .grand { font-size: 70px; animation: rebond 1s ease-in-out infinite; }
 
+/* ---------- Chrono du tour ---------- */
+.chrono-tour { font-weight: 700; font-size: .95em; padding: 3px 12px; border-radius: 999px; background: rgba(0,0,0,.4); }
+.chrono-tour.urgent { color: #fff; background: var(--rouge); animation: pulse 1s ease-in-out infinite; }
+
 /* ---------- Le joueur qui joue, en gros au milieu ---------- */
 .joueur-actif {
   display: flex; align-items: center; gap: .3em; padding: .15em .7em .15em .3em; border-radius: 999px;
